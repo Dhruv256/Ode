@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -12,6 +13,12 @@ export const viewport: Viewport = {
   initialScale: 1,
   themeColor: "#F4F0E7",
 };
+
+const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+const clerkIsConfigured =
+  process.env.NEXT_PUBLIC_CLERK_ENABLED === "true" &&
+  clerkPublishableKey?.startsWith("pk_") &&
+  !clerkPublishableKey.includes("your_key");
 
 export default function RootLayout({
   children,
@@ -35,7 +42,13 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="grain font-sans">{children}</body>
+      <body className="grain font-sans">
+        {clerkIsConfigured ? (
+          <ClerkProvider>{children}</ClerkProvider>
+        ) : (
+          children
+        )}
+      </body>
     </html>
   );
 }

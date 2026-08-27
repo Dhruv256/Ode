@@ -3,16 +3,18 @@
 A curated, art-directed generator. The person's photos, personality and memories
 carry the whole site — not a navbar/hero/cards/features template.
 
-> **Phase 1 (this repo)** is the creator foundation. Full generated template
-> renders are intentionally staged for Phase 2.
+> The creator flow and all twelve generated template renderers are already in
+> this repository. Supabase persistence is enabled through the server publish
+> route; media storage/auth are configured separately as described below.
 
 ## Stack
 
 - Next.js 14 (App Router) · React 18 · TypeScript (strict)
 - Tailwind CSS 3 (design tokens in `tailwind.config.ts`)
 - Framer Motion for entrance/ambient motion (respects `prefers-reduced-motion`)
-- No state library — a typed `useReducer` store in `src/state/` autosaves to
-  localStorage. GSAP / ScrollTrigger / R3F slots are reserved via `MotionProfile`.
+- No state library — a typed `useReducer` store in `src/state/` keeps a local
+  draft cache. Published projects are read server-side from Supabase through
+  `src/lib/publishedProjects.ts`.
 
 ## Getting started
 
@@ -21,6 +23,32 @@ npm install
 npm run dev        # http://localhost:3000
 npm run build      # production build
 ```
+
+## Supabase + Vercel setup
+
+1. Create a Supabase project and copy the pooled PostgreSQL URL from **Connect →
+   Session pooler**. Put it in a local `.env.local` as `DATABASE_URL` and add
+   the same variable in Vercel for Development, Preview, and Production. Keep
+   passwords URL-encoded and never commit `.env.local`.
+2. Run [`database/migrations/001_published_birthday_projects.sql`](database/migrations/001_published_birthday_projects.sql)
+   in the Supabase SQL editor. The app uses `postgres` with SSL and a small
+   connection pool, which is appropriate for Vercel functions.
+3. Deploy with the native Next.js preset. The dynamic `/<slug>` route reads only
+   rows whose status is `published` and visibility is not `private`; it is not
+   statically generated.
+
+The current UI stores selected photos as browser object URLs. Those URLs cannot
+work on another device or in Vercel. Before enabling remote photo publishing,
+configure a private Supabase Storage bucket and add the project’s
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and a server-only
+`SUPABASE_SERVICE_ROLE_KEY` (or signed-upload endpoint). The publish API refuses
+blob-only media instead of silently publishing broken images. Service-role
+credentials must never use a `NEXT_PUBLIC_` prefix.
+
+The SQL migration is intentionally reproducible. Once creator authentication
+and Storage credentials are available, add `owner_id`/RLS policies and
+`project_photos` storage metadata rows in a follow-up migration; the current
+write-token guard protects slug updates in this unauthenticated prototype.
 
 ## Product flow
 

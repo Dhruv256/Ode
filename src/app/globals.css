@@ -103,6 +103,26 @@ input[type="number"] {
   overflow: hidden;
 }
 
+/* Clerk is intentionally small in the public landing navigation. */
+.landing-clerk-trigger,
+.landing-clerk-dashboard {
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+  padding: .8rem 1rem;
+  font: 500 .68rem/1 "IBM Plex Mono", monospace;
+  letter-spacing: .12em;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background .2s ease, color .2s ease;
+}
+.landing-clerk-trigger:hover,
+.landing-clerk-dashboard:hover {
+  background: #181512;
+  color: #f2eee5;
+}
+.landing-clerk-user { display: inline-flex; align-items: center; min-width: 2.25rem; min-height: 2.25rem; }
+
 /* Recipient sites use a compact set of responsive composition tokens. */
 .birthday-template {
   --page-gutter: clamp(1.125rem, 5vw, 3rem);

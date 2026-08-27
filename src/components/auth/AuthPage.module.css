@@ -1,0 +1,5 @@
+.authPage { display:grid; min-height:100dvh; place-items:center; padding:1.25rem; background:#1d1a16; color:#f5f0e5; }
+.frame { width:min(100%,31rem); padding:clamp(1.5rem,5vw,4rem); border:1px solid rgba(245,240,229,.32); background:#2b2721; box-shadow:12px 12px 0 #a93621; }
+.frame > p { margin:0; font:500 .62rem/1 "IBM Plex Mono",monospace; letter-spacing:.15em; }.frame > p span { color:#e9573d; }
+.frame h1 { margin:2.2rem 0 2.5rem; font:400 clamp(4rem,11vw,7.3rem)/.76 "Bodoni Moda",Georgia,serif; letter-spacing:-.08em; }.frame h1 em { font-weight:400; }
+.frame :global(.cl-rootBox) { max-width:100%; }

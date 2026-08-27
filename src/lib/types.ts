@@ -284,6 +284,8 @@ export interface PublishingSettings {
   publishedAt?: string;
   passwordProtected?: boolean;
   unlockAt?: string;
+  /** Local creator capability used to update an existing published slug. */
+  publishToken?: string;
 }
 
 /* ── The project ────────────────────────────────────────────────────────── */
