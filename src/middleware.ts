@@ -9,7 +9,6 @@ const isCreatorRoute = createRouteMatcher([
 
 const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 const clerkIsConfigured =
-  process.env.NEXT_PUBLIC_CLERK_ENABLED === "true" &&
   clerkPublishableKey?.startsWith("pk_") &&
   !clerkPublishableKey.includes("your_key");
 
