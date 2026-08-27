@@ -29,7 +29,9 @@ npm run build      # production build
 1. Create a Supabase project and copy the pooled PostgreSQL URL from **Connect →
    Session pooler**. Put it in a local `.env.local` as `DATABASE_URL` and add
    the same variable in Vercel for Development, Preview, and Production. Keep
-   passwords URL-encoded and never commit `.env.local`.
+   passwords URL-encoded and never commit `.env.local`. Do not use the Storage
+   project URL here: `DATABASE_URL` must start with `postgresql://` and comes
+   from the Supabase **Connect** panel.
 2. Run [`database/migrations/001_published_birthday_projects.sql`](database/migrations/001_published_birthday_projects.sql)
    in the Supabase SQL editor. The app uses `postgres` with SSL and a small
    connection pool, which is appropriate for Vercel functions.

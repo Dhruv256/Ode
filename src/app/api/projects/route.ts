@@ -35,6 +35,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, writeToken });
   } catch (error) {
     console.error("Unable to publish birthday world", error);
-    return NextResponse.json({ error: "The world could not be saved. Check the database configuration." }, { status: 500 });
+    const databaseError = error as { code?: string; message?: string };
+    let message = "The world could not be saved. Check the database connection in Vercel.";
+    if (databaseError.message?.includes("DATABASE_URL is not configured")) {
+      message = "DATABASE_URL is missing. Add Supabase's Session Pooler connection string to Vercel, then redeploy.";
+    } else if (databaseError.code === "42P01") {
+      message = "The birthday_projects table is missing. Run database/migrations/001_published_birthday_projects.sql in Supabase SQL Editor.";
+    } else if (["ENOTFOUND", "ECONNREFUSED", "28P01", "3D000"].includes(databaseError.code ?? "")) {
+      message = "Vercel could not connect to Supabase PostgreSQL. Use the Session Pooler DATABASE_URL from Supabase Connect and save it as a Vercel Secret.";
+    }
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
