@@ -5,6 +5,32 @@ import { useProject } from "@/state/projectStore";
 import { shareUrl, slugifyProject, validSlug } from "@/lib/publishing";
 import type { PublishingSettings } from "@/lib/types";
 
+type UploadSignature = { uploadUrl: string; publicUrl: string; error?: string };
+
+async function uploadBrowserMedia(input: {
+  projectId: string;
+  assetId: string;
+  fileName: string;
+  previewUrl: string;
+  contentType?: string;
+  kind: "image" | "video" | "audio";
+}) {
+  const localFile = await fetch(input.previewUrl);
+  if (!localFile.ok) throw new Error(`Could not read ${input.fileName}. Add that file again, then publish.`);
+  const blob = await localFile.blob();
+  const contentType = input.contentType || blob.type || (input.kind === "audio" ? "audio/mpeg" : "image/jpeg");
+  const signatureResponse = await fetch("/api/media/sign", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ projectId: input.projectId, assetId: input.assetId, fileName: input.fileName, contentType, kind: input.kind }),
+  });
+  const signature = await signatureResponse.json() as UploadSignature;
+  if (!signatureResponse.ok || !signature.uploadUrl) throw new Error(signature.error || "Could not prepare the media upload.");
+  const upload = await fetch(signature.uploadUrl, { method: "PUT", headers: { "content-type": contentType }, body: blob });
+  if (!upload.ok) throw new Error(`Could not upload ${input.fileName}. Check the birthday-media Storage bucket and try again.`);
+  return signature.publicUrl;
+}
+
 export function PublishPanel() {
   const { project, dispatch } = useProject();
   const input = useRef<HTMLInputElement>(null);
@@ -17,11 +43,24 @@ export function PublishPanel() {
   const publish = async () => {
     setPublishing(true);
     setPublishError(null);
-    const next = { ...project, publishing: { ...project.publishing, status: "published" as const, slug, publishedAt: new Date().toISOString() } };
     try {
+      const photos = await Promise.all(project.photos.map(async (photo) => {
+        if (!photo.previewUrl.startsWith("blob:")) return photo;
+        const previewUrl = await uploadBrowserMedia({ projectId: project.id, assetId: photo.id, fileName: photo.fileName, previewUrl: photo.previewUrl, contentType: photo.mimeType, kind: photo.kind === "video" ? "video" : "image" });
+        return { ...photo, previewUrl, needsRelink: false };
+      }));
+      const soundtrack = project.soundtrack?.previewUrl.startsWith("blob:")
+        ? { ...project.soundtrack, previewUrl: await uploadBrowserMedia({ projectId: project.id, assetId: "soundtrack", fileName: project.soundtrack.fileName, previewUrl: project.soundtrack.previewUrl, contentType: project.soundtrack.mimeType, kind: "audio" }), needsRelink: false }
+        : project.soundtrack;
+      const next = { ...project, photos, soundtrack, publishing: { ...project.publishing, status: "published" as const, slug, publishedAt: new Date().toISOString() } };
       const response = await fetch("/api/projects", { method: "POST", headers: { "content-type": "application/json", ...(settings.publishToken ? { "x-birthday-project-token": settings.publishToken } : {}) }, body: JSON.stringify({ project: next }) });
       const result = await response.json() as { error?: string; writeToken?: string };
       if (!response.ok) throw new Error(result.error || "The world could not be published.");
+      photos.forEach((photo) => {
+        const previous = project.photos.find((item) => item.id === photo.id);
+        if (previous?.previewUrl !== photo.previewUrl) dispatch({ type: "patchPhoto", photoId: photo.id, patch: { previewUrl: photo.previewUrl, needsRelink: false } });
+      });
+      if (soundtrack?.previewUrl !== project.soundtrack?.previewUrl) dispatch({ type: "setSoundtrack", soundtrack });
       patch({ ...next.publishing, publishToken: result.writeToken });
     } catch (error) {
       setPublishError(error instanceof Error ? error.message : "The world could not be published.");

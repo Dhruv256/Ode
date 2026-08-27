@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     }
     if (hasLocalOnlyMedia(project)) {
       return NextResponse.json({
-        error: "Your photos are still local browser files. Add Supabase Storage credentials before publishing media to a deployed world.",
+        error: "Some photos have not finished uploading. Please try publishing again.",
         code: "LOCAL_MEDIA",
       }, { status: 422 });
     }

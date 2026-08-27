@@ -5,6 +5,8 @@ const isCreatorRoute = createRouteMatcher([
   "/dashboard(.*)",
   "/create(.*)",
   "/project(.*)",
+  "/api/media/sign(.*)",
+  "/api/projects(.*)",
 ]);
 
 const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;

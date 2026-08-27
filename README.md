@@ -37,13 +37,15 @@ npm run build      # production build
    rows whose status is `published` and visibility is not `private`; it is not
    statically generated.
 
-The current UI stores selected photos as browser object URLs. Those URLs cannot
-work on another device or in Vercel. Before enabling remote photo publishing,
-configure a private Supabase Storage bucket and add the project’s
-`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and a server-only
-`SUPABASE_SERVICE_ROLE_KEY` (or signed-upload endpoint). The publish API refuses
-blob-only media instead of silently publishing broken images. Service-role
-credentials must never use a `NEXT_PUBLIC_` prefix.
+The current UI initially stores selected photos as browser object URLs. On
+publish, the browser now requests a server-signed upload URL and sends the file
+directly to Supabase Storage, then saves the permanent media URL with the world.
+Run [`database/migrations/002_birthday_media_storage.sql`](database/migrations/002_birthday_media_storage.sql)
+in the Supabase SQL editor, then add `NEXT_PUBLIC_SUPABASE_URL` plus a server-only
+`SUPABASE_SECRET_KEY` in Vercel. Older projects may use the supported legacy name
+`SUPABASE_SERVICE_ROLE_KEY`. The `birthday-media` bucket is public so recipients
+can load permanent images; its upload URLs are signed by the server and the
+secret must never use a `NEXT_PUBLIC_` prefix.
 
 The SQL migration is intentionally reproducible. Once creator authentication
 and Storage credentials are available, add `owner_id`/RLS policies and
