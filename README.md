@@ -32,6 +32,9 @@ npm run build      # production build
    passwords URL-encoded and never commit `.env.local`. Do not use the Storage
    project URL here: `DATABASE_URL` must start with `postgresql://` and comes
    from the Supabase **Connect** panel.
+   On Windows, [`Configure Supabase Database.cmd`](Configure%20Supabase%20Database.cmd)
+   prompts for a newly rotated password, encodes it, and copies the complete
+   Session Pooler URI for Vercel.
 2. Run [`database/migrations/001_published_birthday_projects.sql`](database/migrations/001_published_birthday_projects.sql)
    in the Supabase SQL editor. The app uses `postgres` with SSL and a small
    connection pool, which is appropriate for Vercel functions.

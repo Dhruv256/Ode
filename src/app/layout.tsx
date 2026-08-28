@@ -3,7 +3,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Birthday World — create their world",
+  title: "Ode — create their world",
   description:
     "A curated generator for art-directed, interactive birthday websites made of someone's photos, personality and memories.",
 };

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import ClerkNav from "@/components/auth/ClerkNav";
+import OdeLogo from "@/components/brand/OdeLogo";
 import styles from "./LandingPage.module.css";
 
 const gallery = [
@@ -36,10 +37,6 @@ const steps = [
 
 const featuredTemplates = ["CONTACT SHEET", "CUT & PASTE", "CINEMA", "THE ARCHIVE"] as const;
 
-function Mark() {
-  return <span className={styles.mark} aria-hidden="true">*</span>;
-}
-
 export default function LandingPage() {
   const reduceMotion = useReducedMotion();
   const reveal = reduceMotion
@@ -51,8 +48,9 @@ export default function LandingPage() {
       <a className={styles.skip} href="#story">Skip to the story</a>
 
       <header className={styles.header}>
-        <Link href="#top" className={styles.wordmark} aria-label="Birthday World home">
-          BIRTHDAY WORLD<Mark />
+        <Link href="#top" className={styles.wordmark} aria-label="Ode home">
+          <OdeLogo className={styles.brandMark} priority size={42} variant="primary" />
+          <span>ODE</span>
         </Link>
         <nav className={styles.nav} aria-label="Primary navigation">
           <a href="#how">How it works</a>
@@ -147,7 +145,10 @@ export default function LandingPage() {
       </section>
 
       <footer className={styles.footer}>
-        <span>BIRTHDAY WORLD<Mark /></span>
+        <div className={styles.footerBrand}>
+          <OdeLogo className={styles.footerMark} size={34} variant="dark" />
+          <span>ODE</span>
+        </div>
         <span>MADE FOR PEOPLE WHO DESERVE A BIGGER BIRTHDAY.</span>
         <a href="#top">BACK TO TOP ↑</a>
       </footer>

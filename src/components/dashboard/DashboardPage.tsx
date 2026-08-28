@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
+import OdeLogo from "@/components/brand/OdeLogo";
 import type { BirthdayProject } from "@/lib/types";
 import styles from "./DashboardPage.module.css";
 
@@ -64,7 +65,10 @@ export default function DashboardPage() {
     <main className={styles.dashboard}>
       <a className={styles.skip} href="#worlds">Skip to your worlds</a>
       <header className={styles.topbar}>
-        <Link href="/" className={styles.wordmark}>BIRTHDAY WORLD<span>*</span></Link>
+        <Link href="/" className={styles.wordmark} aria-label="Ode home">
+          <OdeLogo className={styles.brandMark} size={38} variant="light" />
+          <span>ODE</span>
+        </Link>
         <nav aria-label="Creator navigation" className={styles.navigation}>
           <Link href="/dashboard" aria-current="page">STUDIO</Link>
           <Link href="/create">CREATE</Link>

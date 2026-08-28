@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { CREATOR_STEPS, useProject } from "@/state/projectStore";
+import OdeLogo from "@/components/brand/OdeLogo";
 import type { CreatorStepId } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -84,7 +85,10 @@ export default function CreatorApp() {
             onClick={() => setStep("gender")}
             className="font-mono text-xs uppercase tracking-widest2 text-ink"
           >
-            Birthday&nbsp;World<span className="text-ember">*</span>
+            <span className="flex items-center gap-2">
+              <OdeLogo className="h-9 w-9 rounded-[22%]" size={36} variant="light" />
+              <span>ODE</span>
+            </span>
           </button>
 
           <div className="flex items-center gap-6 font-mono text-[10px] uppercase tracking-widest2 text-ink-faint sm:text-[11px]">
