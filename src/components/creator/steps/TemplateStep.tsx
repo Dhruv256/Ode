@@ -9,6 +9,7 @@ import { useProject } from "@/state/projectStore";
 import { ALL_TEMPLATES, recommendedTemplatesFor, templateById } from "@/lib/templates";
 import { paletteById } from "@/lib/palettes";
 import { cn } from "@/lib/utils";
+import { experienceFor } from "@/lib/experience";
 
 /**
  * Step 03 · STYLE — browsing an editorial moodboard, not a card grid.
@@ -40,7 +41,7 @@ export default function TemplateStep({ nav }: { nav: StepNav }) {
         Choose their<br /><em className="italic">visual system.</em>
       </StepHeading>
       <p className="mt-5 max-w-md text-ink-soft">
-        Twelve fully art-directed worlds. Not themes — complete visual languages.
+        Twelve different interactive media. Choose the kind of world their memories become.
         You can change this later.
       </p>
 
@@ -50,6 +51,7 @@ export default function TemplateStep({ nav }: { nav: StepNav }) {
             paletteById(t.suggestedPaletteId)?.colors ?? ["#F4F0E7", "#1B1815"];
           const isRecommended = recommended.includes(t.id);
           const isSelected = project.templateId === t.id;
+          const experience = experienceFor(t.id);
           return (
             <article
               key={t.id}
@@ -67,7 +69,7 @@ export default function TemplateStep({ nav }: { nav: StepNav }) {
                 )}
                 aria-label={`Preview ${t.name}`}
               >
-                <div className="h-full w-full transition-transform duration-500 group-hover:scale-[1.015]">
+                <div className={`tp-mini-preview tp-mini-${t.previewKind} h-full w-full`}>
                   <TemplatePreview kind={t.previewKind} colors={colors} name={displayName} />
                 </div>
               </button>
@@ -82,7 +84,7 @@ export default function TemplateStep({ nav }: { nav: StepNav }) {
                     {t.description}
                   </p>
                   <p className="mt-1.5 font-mono text-[10px] uppercase tracking-widest2 text-ink-faint">
-                    ↻ {t.motionHint}
+                    {experience.navigationModel.replaceAll("-", " ")} · {experience.primaryEffect}
                   </p>
                 </div>
                 {isRecommended && (
@@ -98,7 +100,7 @@ export default function TemplateStep({ nav }: { nav: StepNav }) {
                   onClick={() => dispatch({ type: "setTemplate", templateId: t.id })}
                   className="!px-4 !py-2 !text-[11px]"
                 >
-                  {isSelected ? "✓ Using this" : "Use this style"}
+                  {isSelected ? "✓ Using this" : `Use ${t.name}`}
                 </ActionButton>
                 <button
                   type="button"
@@ -143,7 +145,7 @@ export default function TemplateStep({ nav }: { nav: StepNav }) {
               className="max-h-full w-full max-w-3xl overflow-y-auto border border-line bg-paper p-5 sm:p-8"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="aspect-[16/9] w-full overflow-hidden border border-line">
+              <div className={`tp-mini-preview tp-mini-${previewDef.previewKind} aspect-[16/9] w-full overflow-hidden border border-line`}>
                 <TemplatePreview
                   kind={previewDef.previewKind}
                   colors={paletteById(previewDef.suggestedPaletteId)?.colors ?? ["#F4F0E7", "#1B1815"]}
@@ -153,11 +155,15 @@ export default function TemplateStep({ nav }: { nav: StepNav }) {
               <h3 className="mt-5 font-display text-3xl">{previewDef.name}</h3>
               <p className="mt-2 max-w-prose text-ink-soft">{previewDef.description}</p>
 
+              <p className="mt-5 max-w-xl font-display text-xl italic leading-snug">
+                {experienceFor(previewDef.id).spatialModel}. {experienceFor(previewDef.id).interactionProfile}.
+              </p>
+
               <dl className="mt-6 grid grid-cols-1 gap-x-10 gap-y-4 font-mono text-xs sm:grid-cols-2">
-                <Meta label="Typography" value={`${previewDef.typographyProfile.display} / ${previewDef.typographyProfile.body}`} note={previewDef.typographyProfile.notes} />
-                <Meta label="Motion" value={`${previewDef.motionProfile.intensity} · ${previewDef.motionProfile.pageTransition}`} note={previewDef.motionHint} />
-                <Meta label="Photos" value={`min ${previewDef.recommendedPhotoCount.min} · ideal ${previewDef.recommendedPhotoCount.ideal}${previewDef.recommendedPhotoCount.max ? ` · max ${previewDef.recommendedPhotoCount.max}` : ""}`} />
-                <Meta label="Features" value={previewDef.features.join(", ")} />
+                <Meta label="Experience" value={`${experienceFor(previewDef.id).navigationModel.replaceAll("-", " ")} · ${experienceFor(previewDef.id).cameraModel.replaceAll("-", " ")}`} note={experienceFor(previewDef.id).transitionLanguage} />
+                <Meta label="Signature" value={experienceFor(previewDef.id).primaryEffect} note={experienceFor(previewDef.id).secondaryEffects.join(" · ")} />
+                <Meta label="Best with" value={experienceFor(previewDef.id).bestWith} note={experienceFor(previewDef.id).mobileInterpretation} />
+                <Meta label="Optional sound" value={experienceFor(previewDef.id).capabilities.supportsSound ? "Yes" : "No"} note={experienceFor(previewDef.id).soundProfile.options.join(" · ")} />
               </dl>
 
               <div className="mt-8 flex flex-wrap items-center gap-4">
@@ -167,7 +173,7 @@ export default function TemplateStep({ nav }: { nav: StepNav }) {
                     setPreviewing(null);
                   }}
                 >
-                  Use this style
+                  Use {previewDef.name}
                 </ActionButton>
                 <button
                   type="button"

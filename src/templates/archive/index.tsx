@@ -1,125 +1,30 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import type { PhotoAsset } from "@/lib/types";
 import type { RenderCtx } from "../system/types";
 import { Photo } from "../system/photo";
-import { Reveal } from "../system/Reveal";
-import { Finale } from "../system/finale";
-import { DistributedStory } from "../system/DistributedStory";
-import { byRole } from "../system/roles";
+import { AutoCarousel } from "../system/AutoCarousel";
+import { allocatePhotoStory } from "../system/roles";
 
-/**
- * 06 · THE ARCHIVE — a personal museum / documentary catalogue.
- * Catalog numbers, accession stamps, archival type, quiet spacing, large
- * documentary photography. Sections (Early Years / People / Places / etc.)
- * only appear where content exists — nothing is invented.
- */
 export default function Archive({ ctx }: { ctx: RenderCtx }) {
-  const { theme, memories, name, photos } = ctx;
-  const frames = byRole(ctx.roles, "contact-frame");
-  const big = byRole(ctx.roles, "full-bleed");
-  const hero = ctx.hero ?? photos[0];
-
-  const chrono = [...photos].sort((a, b) => (a.dateTaken || "").localeCompare(b.dateTaken || ""));
-
-  return (
-    <div className="relative">
-      {/* ── Catalogue opening ── */}
-      <section className="flex min-h-[100svh] flex-col justify-between px-6 py-16 sm:min-h-screen sm:px-12">
-        <div className="grid gap-10 lg:grid-cols-12">
-          <div className="lg:col-span-7">
-            <p className="font-mono text-[10px] uppercase tracking-widest2" style={{ color: theme.accent }}>
-              BIRTHDAY ARCHIVE · EST {ctx.fullName.toUpperCase()}
-            </p>
-            <h1 className="mt-6 font-didone text-[14vw] font-black leading-[0.85] tracking-tightest sm:text-8xl" style={{ fontFamily: ctx.fonts.display }}>
-              {ctx.title}
-            </h1>
-            <p className="mt-6 max-w-md font-serif text-lg italic" style={{ color: theme.muted }}>
-              {memories.oneSentence || `A curated record of ${name}.`}
-            </p>
-          </div>
-          <div className="lg:col-span-5 flex flex-col justify-end gap-8">
-            <dl className="space-y-3 font-mono text-[11px] uppercase tracking-widest">
-              <ArchiveRow k="Collection" v={`THE ${name} COLLECTION`} />
-              <ArchiveRow k="Num. photos" v={String(photos.length).padStart(3, "0")} />
-              <ArchiveRow k="Accession" v={`Nº ${String(ctx.age ?? 0).padStart(3, "0")}`} />
-            </dl>
-          </div>
-        </div>
-
-        {hero && (
-          <Reveal className="mt-10">
-            <Photo photo={hero} treatment={ctx.treatment} aspect="aspect-[4/5] w-full sm:aspect-[16/9]" />
-            <div className="mt-2 flex justify-between font-mono text-[10px] uppercase tracking-widest opacity-60">
-              <span>ARCHIVE ITEM 001</span>
-              <span>{hero.dateTaken || "UNDATED"}</span>
-            </div>
-          </Reveal>
-        )}
-      </section>
-
-      {/* ── Large documentary frame ── */}
-      {big[0] && (
-        <section className="px-6 py-16 sm:px-12">
-          <div className="border-t pt-6" style={{ borderColor: theme.line }}>
-            <Photo photo={big[0]} treatment={ctx.treatment} aspect="aspect-[4/3] w-full" />
-            <div className="mt-2 flex justify-between font-mono text-[10px] uppercase tracking-widest opacity-60">
-              <span>PLATE {String(50 + photos.indexOf(big[0])).padStart(3, "0")}</span>
-              <span>{big[0].location || "LOCATION UNRECORDED"}</span>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ── Contact-style dense sheet ── */}
-      {frames.length > 0 && (
-        <section className="px-5 py-10 sm:px-10">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-6 sm:gap-2">
-            {frames.map((p, i) => (
-              <Reveal key={p.id} delay={(i % 6) * 40}>
-                <Photo photo={p} treatment={ctx.treatment} aspect="aspect-[4/5] w-full" />
-                <p className="mt-1 font-mono text-[9px] uppercase tracking-widest opacity-60">
-                  {String(i + 1).padStart(3, "0")}
-                </p>
-              </Reveal>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ── Timeline (only if dates exist) ── */}
-      {chrono.filter((p) => p.dateTaken).length >= 2 && (
-        <section className="px-6 py-16 sm:px-12">
-          <p className="font-mono text-[10px] uppercase tracking-widest2" style={{ color: theme.accent }}>
-            TIMELINE · CHRONOLOGICAL
-          </p>
-          <div className="mt-6 space-y-6 border-l pl-6" style={{ borderColor: theme.line }}>
-            {chrono.filter((p) => p.dateTaken).slice(0, 8).map((p) => (
-              <div key={p.id} className="grid grid-cols-1 gap-3 sm:grid-cols-12">
-                <span className="font-mono text-[10px] uppercase tracking-widest sm:col-span-3" style={{ color: theme.muted }}>
-                  {p.dateTaken?.slice(0, 7)}
-                </span>
-                <div className="sm:col-span-9 max-w-md">
-                  <Photo photo={p} treatment={ctx.treatment} aspect="aspect-[4/3] w-full" />
-                  {p.caption && <p className="mt-1 font-mono text-[10px] uppercase tracking-widest opacity-60">{p.caption}</p>}
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      <DistributedStory ctx={ctx} />
-      <Finale ctx={ctx} />
-    </div>
-  );
+  const allocation = allocatePhotoStory(ctx.photos, ctx.hero?.id);
+  const gallery = [allocation.feature, ...allocation.pair].filter(Boolean) as PhotoAsset[];
+  const roomTwo = [...allocation.carousel, ...allocation.secondaryPair, ...allocation.montage];
+  const dated = ctx.photos.filter((photo) => photo.dateTaken).sort((a, b) => (a.dateTaken || "").localeCompare(b.dateTaken || ""));
+  return <div className="relative">
+    <section data-experience-chapter className="grid min-h-[72svh] content-between gap-12 px-6 py-14 sm:px-12"><div className="grid gap-10 lg:grid-cols-12"><div className="lg:col-span-8"><p className="font-mono text-[9px] uppercase tracking-[.38em]" style={{ color: ctx.theme.accent }}>personal archive · accession {String(ctx.age ?? 0).padStart(3, "0")}</p><h1 className="mt-7 font-didone text-[clamp(4rem,13vw,9rem)] leading-[.78]" style={{ fontFamily: ctx.fonts.display }}>{ctx.title}</h1><p className="mt-7 max-w-lg font-serif text-xl italic opacity-60">{ctx.memories.oneSentence || `A curated record of ${ctx.name}.`}</p></div><dl className="space-y-3 self-end font-mono text-[9px] uppercase tracking-widest2 lg:col-span-4"><Row k="collection" v={ctx.name} /><Row k="objects" v={String(ctx.photos.length).padStart(3, "0")} /><Row k="status" v="open / growing" /></dl></div><p className="font-mono text-[9px] uppercase tracking-[.35em] opacity-40">index ↓ cover / object / rooms / drawer / time / letter</p></section>
+    {allocation.hero ? <section data-experience-chapter className="px-5 py-16 sm:px-12"><p className="mb-5 font-mono text-[9px] uppercase tracking-[.36em] opacity-45">artifact 001 · primary object</p><Photo photo={allocation.hero} treatment="none" aspect={allocation.hero.orientation === "landscape" ? "aspect-[3/2] w-full max-w-5xl mx-auto" : "aspect-[4/5] w-full max-w-2xl mx-auto"} fit="contain" footprint="cinematic" /><p className="mx-auto mt-4 max-w-5xl font-mono text-[8px] uppercase tracking-widest2 opacity-45">{allocation.hero.dateTaken || "undated"} · {allocation.hero.location || "location unrecorded"} · {allocation.hero.caption || "collection cover"}</p></section> : null}
+    {gallery.length ? <section data-experience-chapter className="border-y px-5 py-16 sm:px-12" style={{ borderColor: ctx.theme.line }}><div className="mb-7 flex justify-between font-mono text-[9px] uppercase tracking-[.34em] opacity-45"><span>gallery room 01</span><span>controlled rotation</span></div><AutoCarousel items={gallery} getKey={(photo) => photo.id} kind="editorial" visible={ctx.device === "mobile" ? 1 : gallery.length >= 3 ? 3 : gallery.length > 1 ? 2 : 1} label="Archive gallery room one" renderItem={(photo, index) => <figure><Photo photo={photo} treatment={index === 0 ? "bw" : "none"} aspect={photo.orientation === "landscape" ? "aspect-[3/2] w-full" : "aspect-[4/5] w-full"} footprint="compact" /><figcaption className="mt-2 font-mono text-[8px] uppercase tracking-widest2 opacity-45">object {String(index + 2).padStart(3, "0")}</figcaption></figure>} /></section> : null}
+    {allocation.reveal ? <Drawer photo={allocation.reveal} ctx={ctx} /> : null}
+    <section data-experience-chapter className="px-6 py-16 sm:px-12"><p className="font-mono text-[9px] uppercase tracking-[.35em]" style={{ color: ctx.theme.accent }}>timeline · documented coordinates</p><div className="mt-8 grid gap-px border sm:grid-cols-3" style={{ borderColor: ctx.theme.line, background: ctx.theme.line }}>{(dated.length ? dated.slice(0, 3) : ctx.photos.slice(0, 3)).map((photo, index) => <div key={photo.id} className="p-6" style={{ background: ctx.theme.bg }}><p className="font-mono text-[8px] uppercase tracking-widest2 opacity-45">point {String(index + 1).padStart(2, "0")}</p><p className="mt-8 font-serif text-2xl italic">{photo.dateTaken || "date unrecorded"}</p><p className="mt-3 text-sm opacity-55">{photo.location || photo.caption || "context remains with the collector"}</p></div>)}</div></section>
+    <section data-experience-chapter className="grid min-h-[38svh] place-items-center border-y px-6 py-14 text-center" style={{ borderColor: ctx.theme.line }}><blockquote className="max-w-5xl font-serif text-[clamp(2.6rem,8vw,6rem)] italic leading-[.95]">“{ctx.memories.alwaysSays || ctx.memories.knownFor || "Some people become part of the permanent collection."}”</blockquote></section>
+    {roomTwo.length ? <section data-experience-chapter className="px-5 py-16 sm:px-12"><p className="mb-7 font-mono text-[9px] uppercase tracking-[.34em] opacity-45">gallery room 02 · rotating study</p><AutoCarousel items={roomTwo} getKey={(photo) => photo.id} kind="fade" visible={ctx.device === "mobile" ? 1 : roomTwo.length > 1 ? 2 : 1} autoMs={5600} label="Archive gallery room two" renderItem={(photo, index) => <Photo photo={photo} treatment="none" aspect={photo.orientation === "landscape" ? "aspect-[3/2] w-full" : "aspect-[4/5] w-full"} footprint="compact" captionFallback={`room two object ${index + 1}`} />} /></section> : null}
+    <section data-experience-chapter className="grid gap-10 border-y px-6 py-16 md:grid-cols-2 md:items-center md:px-12" style={{ borderColor: ctx.theme.line }}>{allocation.memory ? <Photo photo={allocation.memory} treatment="none" aspect={allocation.memory.orientation === "landscape" ? "aspect-[3/2] w-full" : "aspect-[4/5] w-full"} footprint="compact" /> : null}<div><p className="font-mono text-[9px] uppercase tracking-widest2 opacity-45">memory artifact · annotation</p><p className="mt-7 font-serif text-[clamp(2.2rem,6vw,4.4rem)] italic leading-tight">{ctx.memories.memory || "One object whose meaning cannot fit on the label."}</p></div></section>
+    <section data-experience-chapter className="mx-auto max-w-4xl px-6 py-16"><div className="border p-7 sm:p-12" style={{ borderColor: ctx.theme.text }}><p className="font-mono text-[9px] uppercase tracking-[.34em] opacity-45">letter in the collection · handle carefully</p><p className="mt-8 font-serif text-[clamp(2.3rem,6vw,4.6rem)] italic leading-tight">{ctx.memories.message || `Happy birthday, ${ctx.name}. Thank you for giving us so much worth preserving.`}</p></div></section>
+    <footer className="grid min-h-[46svh] place-items-center border-t px-6 py-14 text-center" style={{ borderColor: ctx.theme.line }}>{allocation.finale ? <div><div className="mx-auto w-32 sm:w-44"><Photo photo={allocation.finale} treatment="none" aspect="aspect-[4/5] w-full" footprint="compact" showCaption={false} /></div><p className="mt-7 font-mono text-[9px] uppercase tracking-[.4em] opacity-45">catalogue closed for today</p><h2 className="mt-6 font-didone text-[clamp(3.2rem,10vw,7rem)] leading-[.8]" style={{ fontFamily: ctx.fonts.display }}>{ctx.memories.ending || "COLLECTION REMAINS OPEN."}</h2></div> : <h2 className="font-didone text-6xl">{ctx.memories.ending || "COLLECTION REMAINS OPEN."}</h2>}</footer>
+  </div>;
 }
 
-function ArchiveRow({ k, v }: { k: string; v: string }) {
-  return (
-    <div className="flex items-baseline justify-between gap-6">
-      <dt style={{ color: "var(--tp-muted)" }}>{k}</dt>
-      <dd className="text-right" style={{ color: "var(--tp-text)" }}>{v}</dd>
-    </div>
-  );
-}
+function Row({ k, v }: { k: string; v: string }) { return <div className="flex justify-between gap-6"><dt className="opacity-45">{k}</dt><dd>{v}</dd></div>; }
+function Drawer({ photo, ctx }: { photo: PhotoAsset; ctx: RenderCtx }) { const [open, setOpen] = useState(false); return <section data-experience-chapter className="px-6 py-16 sm:px-12"><button type="button" onClick={() => setOpen((value) => !value)} className="mx-auto block w-full max-w-5xl border p-5 text-left" style={{ borderColor: ctx.theme.text, background: ctx.theme.panel }} aria-expanded={open}><div className="flex items-center justify-between font-mono text-[9px] uppercase tracking-widest2"><span>artifact drawer 004</span><span>{open ? "close ↑" : "pull open ↓"}</span></div><div className={`grid overflow-hidden transition-[grid-template-rows] duration-700 ${open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}><div className="min-h-0"><div className="grid gap-8 pt-8 md:grid-cols-2 md:items-center"><Photo photo={photo} treatment="none" aspect={photo.orientation === "landscape" ? "aspect-[3/2] w-full" : "aspect-[4/5] w-full"} footprint="compact" /><p className="font-serif text-3xl italic">{photo.caption || ctx.memories.insideJoke || "A private annotation rests inside this drawer."}</p></div></div></div></button></section>; }

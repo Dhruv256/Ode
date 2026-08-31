@@ -48,10 +48,17 @@ export function assignRoles(
       roles.push({ photo, role: "finale" });
       return;
     }
-    // role fan-out
+    // Metadata-aware casting comes before count-based fan-out. No analysis is
+    // invented: these branches activate only when the creator or a real image
+    // analysis pass supplied the corresponding signal.
     const remaining = n - roles.filter((r) => r.role === "hero" || r.role === "finale").length;
     let role: PhotoRole;
-    if (n === 1) role = "hero";
+    if (photo.associatedMemoryId) role = "hidden-interaction";
+    else if (photo.analysis?.isGroupPhoto) role = "group";
+    else if (photo.analysis?.isCloseUp) role = "detail";
+    else if (photo.dateTaken && i % 3 === 0) role = "sequence";
+    else if (photo.orientation === "landscape" && n > 4 && i % 5 === 0) role = "background";
+    else if (n === 1) role = "hero";
     else if (n <= 4) {
       // offset pairings: hero handled; the rest are large paired/strip
       role = i % 2 === 0 ? "strip" : "paired";
@@ -84,6 +91,36 @@ export function byRole(roles: RoleAssignment[], role: PhotoRole): PhotoAsset[] {
 export function accentPhoto(roles: RoleAssignment[]): PhotoAsset | undefined {
   const acc = byRole(roles, "card");
   return acc.length ? acc[acc.length - 1] : byRole(roles, "floating")[0];
+}
+
+export interface PhotoStoryAllocation {
+  hero?: PhotoAsset;
+  feature?: PhotoAsset;
+  pair: PhotoAsset[];
+  reveal?: PhotoAsset;
+  carousel: PhotoAsset[];
+  memory?: PhotoAsset;
+  secondaryPair: PhotoAsset[];
+  montage: PhotoAsset[];
+  finale?: PhotoAsset;
+}
+
+/**
+ * A deterministic narrative allocation that uses every upload without placing
+ * the whole collection on screen. Dense montage is reserved for 21+ photos.
+ */
+export function allocatePhotoStory(photos: PhotoAsset[], heroId?: string): PhotoStoryAllocation {
+  if (!photos.length) return { pair: [], carousel: [], secondaryPair: [], montage: [] };
+  const hero = photos.find((photo) => photo.id === heroId || photo.isHero) ?? photos[0];
+  const ordered = photos.filter((photo) => photo.id !== hero.id);
+  const finale = ordered.length > 0 ? ordered.pop() : hero;
+  const feature = ordered.shift();
+  const pair = ordered.splice(0, 2);
+  const reveal = ordered.shift();
+  const memory = ordered.length > 2 ? ordered.splice(Math.floor(ordered.length / 2), 1)[0] : ordered.shift();
+  const secondaryPair = ordered.splice(-2, 2);
+  const montage = photos.length >= 21 ? ordered.splice(Math.max(0, ordered.length - Math.min(12, photos.length - 18))) : [];
+  return { hero, feature, pair, reveal, carousel: ordered, memory, secondaryPair, montage, finale };
 }
 
 export { min, max, floor };

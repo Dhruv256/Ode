@@ -3,6 +3,7 @@
 import React from "react";
 import type { PhotoAsset } from "@/lib/types";
 import { Photo } from "./photo";
+import { AutoCarousel } from "./AutoCarousel";
 import type { Treatment } from "./types";
 import { cn } from "@/lib/utils";
 
@@ -45,17 +46,24 @@ export function FilmStrip({
 }) {
   if (photos.length === 0) return null;
   return (
-    <div className={cn("flex gap-2 overflow-x-auto", className)}>
-      {photos.map((p, i) => (
-        <div key={p.id} className="w-28 shrink-0 sm:w-36">
-          <Photo photo={p} treatment={treatment} aspect="aspect-[4/5] w-full" showCaption />
+    <AutoCarousel
+      items={photos}
+      getKey={(photo) => photo.id}
+      kind="film"
+      visible={1}
+      autoMs={4600}
+      label="Automatic film strip"
+      className={className}
+      renderItem={(p, i) => (
+        <div className="mx-auto w-full max-w-xs">
+          <Photo photo={p} treatment={treatment} aspect="aspect-[4/5] w-full" footprint="compact" showCaption />
           <div className="mt-1 flex justify-between font-mono text-[9px] uppercase opacity-70">
             <span>FRAME {String(start + i).padStart(2, "0")}</span>
             <span>{p.orientation === "portrait" ? "80mm" : "36mm"}</span>
           </div>
         </div>
-      ))}
-    </div>
+      )}
+    />
   );
 }
 

@@ -1,0 +1,167 @@
+[
+  {
+    "template": "cut-and-paste",
+    "desktop": {
+      "carousels": 0,
+      "chapters": 12,
+      "clientWidth": 1425,
+      "scrollWidth": 1425
+    },
+    "mobile": {
+      "carousels": 0,
+      "chapters": 12,
+      "clientWidth": 375,
+      "scrollWidth": 375
+    }
+  },
+  {
+    "template": "cover-star",
+    "desktop": {
+      "carousels": 0,
+      "chapters": 8,
+      "clientWidth": 1425,
+      "scrollWidth": 1425
+    },
+    "mobile": {
+      "carousels": 0,
+      "chapters": 8,
+      "clientWidth": 375,
+      "scrollWidth": 375
+    }
+  },
+  {
+    "template": "cinema",
+    "desktop": {
+      "carousels": 0,
+      "chapters": 16,
+      "clientWidth": 1425,
+      "scrollWidth": 1425
+    },
+    "mobile": {
+      "carousels": 0,
+      "chapters": 16,
+      "clientWidth": 375,
+      "scrollWidth": 375
+    }
+  },
+  {
+    "template": "internet-person",
+    "desktop": {
+      "carousels": 0,
+      "chapters": 0,
+      "clientWidth": 1425,
+      "scrollWidth": 1425
+    },
+    "mobile": {
+      "carousels": 0,
+      "chapters": 0,
+      "clientWidth": 375,
+      "scrollWidth": 375
+    }
+  },
+  {
+    "template": "archive",
+    "desktop": {
+      "carousels": 0,
+      "chapters": 10,
+      "clientWidth": 1425,
+      "scrollWidth": 1425
+    },
+    "mobile": {
+      "carousels": 0,
+      "chapters": 10,
+      "clientWidth": 375,
+      "scrollWidth": 375
+    }
+  },
+  {
+    "template": "after-dark",
+    "desktop": {
+      "carousels": 0,
+      "chapters": 12,
+      "clientWidth": 1425,
+      "scrollWidth": 1425
+    },
+    "mobile": {
+      "carousels": 0,
+      "chapters": 12,
+      "clientWidth": 375,
+      "scrollWidth": 375
+    }
+  },
+  {
+    "template": "sunday-morning",
+    "desktop": {
+      "carousels": 0,
+      "chapters": 14,
+      "clientWidth": 1425,
+      "scrollWidth": 1425
+    },
+    "mobile": {
+      "carousels": 0,
+      "chapters": 14,
+      "clientWidth": 375,
+      "scrollWidth": 375
+    }
+  },
+  {
+    "template": "polaroid-wall",
+    "desktop": {
+      "carousels": 0,
+      "chapters": 6,
+      "clientWidth": 1425,
+      "scrollWidth": 1425
+    },
+    "mobile": {
+      "carousels": 0,
+      "chapters": 6,
+      "clientWidth": 375,
+      "scrollWidth": 375
+    }
+  },
+  {
+    "template": "dreamscape",
+    "desktop": {
+      "carousels": 0,
+      "chapters": 8,
+      "clientWidth": 1425,
+      "scrollWidth": 1425
+    },
+    "mobile": {
+      "carousels": 0,
+      "chapters": 8,
+      "clientWidth": 375,
+      "scrollWidth": 375
+    }
+  },
+  {
+    "template": "poster-city",
+    "desktop": {
+      "carousels": 0,
+      "chapters": 12,
+      "clientWidth": 1425,
+      "scrollWidth": 1425
+    },
+    "mobile": {
+      "carousels": 0,
+      "chapters": 12,
+      "clientWidth": 375,
+      "scrollWidth": 375
+    }
+  },
+  {
+    "template": "yearbook",
+    "desktop": {
+      "carousels": 2,
+      "chapters": 6,
+      "clientWidth": 1425,
+      "scrollWidth": 1425
+    },
+    "mobile": {
+      "carousels": 2,
+      "chapters": 6,
+      "clientWidth": 375,
+      "scrollWidth": 375
+    }
+  }
+]

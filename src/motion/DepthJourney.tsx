@@ -5,6 +5,7 @@ import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion
 import type { PhotoAsset } from "@/lib/types";
 import type { Treatment } from "@/templates/system/types";
 import { Photo } from "@/templates/system/photo";
+import { AutoCarousel } from "@/templates/system/AutoCarousel";
 import { useMobileComposition } from "@/templates/system/responsive";
 
 /** CSS 3D fallback: spatial photo planes without downloading a WebGL runtime. */
@@ -16,7 +17,7 @@ export function DepthJourney({ photos, treatment, name }: { photos: PhotoAsset[]
   const hero = photos[0];
   const heroScale = useTransform(scrollYProgress, [0, 0.8], reduced ? [1, 1] : [0.45, 1.55]);
   const heroZ = useTransform(scrollYProgress, [0, 1], reduced ? ["0px", "0px"] : ["-340px", "140px"]);
-  if (mobile) return <section className="relative px-5 py-20" aria-label="Dream sequence"><p className="font-mono text-[10px] uppercase tracking-widest2 opacity-60">drifting toward {name}</p><div className="mt-8 flex gap-4 overflow-x-auto pb-3 pr-5 snap-x snap-mandatory touch-pan-x">{photos.slice(0, 6).map((photo, i) => <div key={photo.id} className={`w-[72vw] shrink-0 snap-center ${i % 2 ? "mt-10" : ""}`}><Photo photo={photo} treatment={treatment} aspect="aspect-[3/4] w-full" /></div>)}</div></section>;
+  if (mobile) return <section className="relative px-5 py-20" aria-label="Dream sequence"><p className="font-mono text-[10px] uppercase tracking-widest2 opacity-60">drifting toward {name}</p><AutoCarousel className="mt-8" items={photos.slice(0, 6)} getKey={(photo) => photo.id} kind="orbit" visible={1} label="Dream sequence" renderItem={(photo) => <div className="mx-auto w-[72vw]"><Photo photo={photo} treatment={treatment} aspect="aspect-[3/4] w-full" footprint="compact" /></div>} /></section>;
   return <section ref={ref} className="relative h-[190vh] overflow-hidden" style={{ perspective: "1100px" }}>
     <div className="sticky top-0 h-screen overflow-hidden">
       <p className="absolute left-6 top-8 z-20 font-mono text-[10px] uppercase tracking-widest2 sm:left-12">drifting toward {name}</p>

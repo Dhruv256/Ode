@@ -28,13 +28,13 @@ export const TEMPLATE_STYLE: Record<TemplateId, TemplateStyleSpec> = {
   "cover-star": { fonts: { display: F.didone, body: F.sans, mono: F.mono, hand: F.hand }, treatment: "none" },
   cinema: { fonts: { display: F.didone, body: F.sans, mono: F.mono }, treatment: "grain" },
   "internet-person": { fonts: { display: F.sans, body: F.sans, mono: F.mono }, treatment: "none" },
-  archive: { fonts: { display: F.didone, body: F.serif, mono: F.mono }, treatment: "newspaper" },
+  archive: { fonts: { display: F.didone, body: F.serif, mono: F.mono }, treatment: "grain" },
   "after-dark": { fonts: { display: F.cond, body: F.sans, mono: F.mono }, treatment: "flash" },
   "sunday-morning": { fonts: { display: F.serif, body: F.serif, mono: F.mono, hand: F.hand }, treatment: "none" },
   "polaroid-wall": { fonts: { display: F.serif, body: F.sans, mono: F.mono, hand: F.hand }, treatment: "warm" },
-  dreamscape: { fonts: { display: F.serif, body: F.sans, mono: F.mono, hand: F.hand }, treatment: "cool" },
+  dreamscape: { fonts: { display: F.serif, body: F.sans, mono: F.mono, hand: F.hand }, treatment: "none" },
   "poster-city": { fonts: { display: F.cond, body: F.sans, mono: F.mono }, treatment: "halftone" },
-  yearbook: { fonts: { display: F.didone, body: F.mono, mono: F.mono, hand: F.hand }, treatment: "photocopy" },
+  yearbook: { fonts: { display: F.didone, body: F.mono, mono: F.mono, hand: F.hand }, treatment: "warm" },
 };
 
 export { F as FONTS };

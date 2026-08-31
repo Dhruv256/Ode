@@ -9,6 +9,7 @@
     "start": "next start",
     "serve": "next build && next start",
     "typecheck": "tsc --noEmit",
+    "qa:templates": "node scripts/template-structure-audit.mjs",
     "lint": "next lint"
   },
   "dependencies": {

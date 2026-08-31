@@ -46,6 +46,7 @@ export function Photo({
   captionFallback = "Add the story behind this photo",
   style,
   fit,
+  footprint = "normal",
 }: {
   photo: PhotoAsset;
   className?: string;
@@ -56,6 +57,7 @@ export function Photo({
   captionFallback?: string;
   style?: React.CSSProperties;
   fit?: "cover" | "contain";
+  footprint?: "compact" | "normal" | "cinematic" | "unbounded";
 }) {
   const focalX = (photo.focalPoint?.x ?? 0.5) * 100;
   const focalY = (photo.focalPoint?.y ?? 0.5) * 100;
@@ -75,9 +77,12 @@ export function Photo({
     );
   }
 
+  const resolvedFit = fit ?? (photo.fit === "fit" || photo.fit === "original" || photo.analysis?.isGroupPhoto ? "contain" : "cover");
+  const footprintClass = footprint === "compact" ? "tp-photo-compact" : footprint === "cinematic" ? "tp-photo-cinematic" : footprint === "unbounded" ? "" : "tp-photo-normal";
+
   return (
     <figure
-      className={cn("tp-frame", aspect, className)}
+      className={cn("tp-frame", footprintClass, aspect, className)}
       style={style}
     >
       {isVideo ? (
@@ -87,13 +92,13 @@ export function Photo({
           playsInline
           preload="metadata"
           className={cn("h-full w-full object-cover", imgClassName)}
-          style={{ objectPosition: `${focalX}% ${focalY}%`, objectFit: fit ?? "cover", filter }}
+          style={{ objectPosition: `${focalX}% ${focalY}%`, objectFit: resolvedFit, filter }}
           aria-label={photo.caption || photo.fileName}
           onError={() => setFailed(true)}
         />
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={photo.previewUrl} alt={photo.caption || photo.fileName} loading="lazy" draggable={false} onError={() => setFailed(true)} className={cn("h-full w-full object-cover", imgClassName)} style={{ objectPosition: `${focalX}% ${focalY}%`, objectFit: fit ?? "cover", filter }} />
+        <img src={photo.previewUrl} alt={photo.caption || photo.fileName} loading="lazy" draggable={false} onError={() => setFailed(true)} className={cn("h-full w-full object-cover", imgClassName)} style={{ objectPosition: `${focalX}% ${focalY}%`, objectFit: resolvedFit, filter }} />
       )}
       {isVideo && <button type="button" className="absolute bottom-3 right-3 z-[4] border border-white/80 bg-black/55 px-2 py-1 font-mono text-[9px] uppercase tracking-widest text-white" onClick={(e) => { const video = e.currentTarget.parentElement?.querySelector("video"); if (!video) return; video.paused ? void video.play() : video.pause(); }}>play clip</button>}
       {overlayKinds(t).map((o, i) => (

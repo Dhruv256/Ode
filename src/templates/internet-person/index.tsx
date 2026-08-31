@@ -1,125 +1,40 @@
 "use client";
 
-import React, { useState } from "react";
-import { motion } from "framer-motion";
+import React, { useEffect, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { RenderCtx } from "../system/types";
 import { Photo } from "../system/photo";
-import { Finale } from "../system/finale";
-import { DistributedStory } from "../system/DistributedStory";
-import { byRole } from "../system/roles";
+import { AutoCarousel, TextCarousel } from "../system/AutoCarousel";
 import { AgeMark } from "../system/motifs";
 
-/**
- * 05 · INTERNET PERSON — beautiful digital chaos.
- * Desktop windows / browser fragments / folders — but no Windows clone.
- * Sophisticated type, restrained nostalgia. On desktop a few windows are
- * draggable; on mobile they stack as interactive objects.
- */
-
-const WINDOWS = [
-  { id: "moments", title: "best_moments", tone: 0 },
-  { id: "chaos", title: "unreleased_chaos", tone: 1 },
-  { id: "iconic", title: "evidence_theyre_iconic", tone: 2 },
-  { id: "deleted", title: "photos_we_should_probably_delete", tone: 3 },
+type AppKey = "photos" | "favorites" | "memory" | "messages" | "birthday";
+const APPS: Array<{ id: AppKey; icon: string; label: string }> = [
+  { id: "photos", icon: "▧", label: "photos" }, { id: "favorites", icon: "☆", label: "favorites" }, { id: "memory", icon: "⌁", label: "memory" }, { id: "messages", icon: "✉", label: "messages" }, { id: "birthday", icon: "▶", label: "birthday.exe" },
 ];
 
 export default function InternetPerson({ ctx }: { ctx: RenderCtx }) {
-  const { theme, name, age, memories, fullName } = ctx;
-  const cards = byRole(ctx.roles, "card");
-  const hero = ctx.hero ?? ctx.photos[0];
-  const [offsets, setOffsets] = useState<Record<string, { x: number; y: number }>>({});
-
-  return (
-    <div className="relative min-h-screen overflow-hidden" style={{ background: theme.bg }}>
-      {/* ── Boot screen ── */}
-      <section className="flex min-h-[100svh] flex-col items-center justify-center px-6 text-center sm:min-h-screen">
-        <p className="font-mono text-[12px] tracking-widest2" style={{ color: theme.accent }}>
-          BOOTING {fullName.toUpperCase()} {String(age ?? 0).replace(".", ".")}.0
-        </p>
-        <div className="mt-4 h-px w-40" style={{ background: theme.line, animation: "tp-scroll 2s linear infinite" }} />
-        <p className="mt-4 font-mono text-[10px] uppercase tracking-widest2 opacity-50">
-          loading memories… 100%
-        </p>
-      </section>
-
-      {/* ── Draggable window gallery ── */}
-      <section className="relative px-4 py-16 sm:px-8">
-        <p className="mb-6 font-mono text-[10px] uppercase tracking-widest2" style={{ color: theme.muted }}>
-          ~/photos/{name.toLowerCase().replace(/\s+/g, "-")}/age-{age}
-        </p>
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          {WINDOWS.map((w, wi) => {
-            const photos = cards.slice(wi * 3, wi * 3 + 3);
-            const dragged = offsets[w.id];
-            return (
-              <motion.div
-                key={w.id}
-                drag={ctx.device === "desktop"}
-                dragConstraints={{ left: -40, right: 40, top: -24, bottom: 24 }}
-                dragMomentum={false}
-                onDragEnd={(_e, info) =>
-                  setOffsets((prev) => ({ ...prev, [w.id]: { x: prev[w.id]?.x + info.offset.x || info.offset.x, y: prev[w.id]?.y + info.offset.y || info.offset.y } }))
-                }
-                animate={dragged ? dragged : undefined}
-                className={ctx.device === "desktop" ? "tp-drag-cursor relative" : "relative"}
-                style={ctx.device === "desktop" && wi % 2 ? { marginTop: 16 } : undefined}
-              >
-                <div className="border" style={{ borderColor: theme.line, background: theme.panel }}>
-                  <div className="flex items-center justify-between border-b px-3 py-2" style={{ borderColor: theme.line }}>
-                    <span className="font-mono text-[10px] uppercase tracking-widest">{w.title}</span>
-                    <span className="flex gap-1">
-                      {[theme.accent, theme.accent2, theme.accent3].map((c, i) => (
-                        <span key={i} className="h-2 w-2 rounded-full" style={{ background: c }} />
-                      ))}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-1 p-2">
-                    {photos.length
-                      ? photos.map((p, i) => (
-                          <Photo key={p.id} photo={p} treatment={ctx.treatment} aspect="aspect-square w-full" />
-                        ))
-                      : Array.from({ length: 3 }).map((_, i) => (
-                          <div key={i} className="flex aspect-square items-center justify-center border border-dashed text-[9px] uppercase opacity-40" style={{ borderColor: theme.line }}>
-                            file
-                          </div>
-                        ))}
-                  </div>
-                  <div className="px-3 py-2 font-mono text-[9px] uppercase tracking-widest opacity-60" style={{ color: theme.muted }}>
-                    {photos.length} of {cards.length || 0} files · status: saved
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ── System note ── */}
-      <section className="mx-auto flex max-w-2xl flex-col items-start gap-3 px-6 py-16">
-        <AgeMark ctx={ctx} />
-        {memories.insideJoke ? (
-          <p className="font-mono text-sm leading-relaxed opacity-80">&gt; {memories.insideJoke}</p>
-        ) : (
-          <p className="font-mono text-sm leading-relaxed opacity-60">&gt; no system notes yet — the creator can add an inside joke</p>
-        )}
-        <div className="h-3 w-px" style={{ background: theme.accent }} />
-      </section>
-
-      {/* ── Hero window pinned to the wall ── */}
-      {hero && (
-        <section className="px-6 pb-20">
-          <div className="mx-auto max-w-md border" style={{ borderColor: theme.line }}>
-            <div className="flex items-center gap-2 px-3 py-2 font-mono text-[10px]" style={{ background: theme.panel }}>
-              <span className="h-2 w-2 rounded-full" style={{ background: theme.accent }} />
-              img/{name.toLowerCase().replace(/\s+/g, "-")}.png
-            </div>
-            <Photo photo={hero} treatment={ctx.treatment} aspect="aspect-[4/5] w-full" />
-          </div>
-        </section>
-      )}
-
-      <DistributedStory ctx={ctx} />
-      <Finale ctx={ctx} />
-    </div>
-  );
+  const [booted, setBooted] = useState(false);
+  const [active, setActive] = useState<AppKey>("photos");
+  const reduced = useReducedMotion();
+  useEffect(() => { const timer = window.setTimeout(() => setBooted(true), reduced ? 0 : 1250); return () => window.clearTimeout(timer); }, [reduced]);
+  return <div className="relative min-h-screen overflow-hidden" style={{ background: ctx.theme.bg }}>
+    <AnimatePresence mode="wait">{!booted ? <motion.section key="boot" exit={{ opacity: 0 }} className="grid min-h-[72svh] place-items-center px-6 text-center"><div><p className="font-mono text-xs uppercase tracking-[.38em]" style={{ color: ctx.theme.accent }}>booting {ctx.name.toUpperCase()} {ctx.age ?? "latest"}.0</p><div className="mx-auto mt-5 h-px w-48 overflow-hidden" style={{ background: ctx.theme.line }}><motion.span className="block h-full" style={{ background: ctx.theme.accent }} initial={{ width: 0 }} animate={{ width: "100%" }} transition={{ duration: reduced ? 0 : 1 }} /></div><p className="mt-4 font-mono text-[9px] uppercase tracking-widest2 opacity-45">restoring the good files…</p></div></motion.section> : <motion.main key="desktop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} data-experience-chapter className="mx-auto flex min-h-[88svh] max-w-7xl flex-col px-3 py-4 sm:px-7 sm:py-8">
+      <div className="flex items-center justify-between border px-3 py-2 font-mono text-[9px] uppercase tracking-widest2" style={{ borderColor: ctx.theme.line, background: ctx.theme.panel }}><span>{ctx.fullName} / personal desktop</span><span>{new Date().getFullYear()} · online</span></div>
+      <div className="mt-3 grid flex-1 gap-3 lg:grid-cols-[8rem_minmax(0,1fr)]">
+        <nav aria-label="Desktop apps" className="grid grid-cols-5 gap-2 rounded-[2rem] border p-2 lg:block lg:space-y-3 lg:rounded-none lg:border-0">{APPS.map((app) => <button type="button" key={app.id} onClick={() => setActive(app.id)} className={`group flex min-w-0 flex-col items-center gap-1 p-2 text-center ${active === app.id ? "bg-[color:var(--tp-panel)]" : ""}`} aria-pressed={active === app.id}><span className="grid h-10 w-10 place-items-center border text-xl transition-transform group-hover:-translate-y-1" style={{ borderColor: ctx.theme.line, background: app.id === "birthday" ? ctx.theme.accent : ctx.theme.panel, color: app.id === "birthday" ? ctx.theme.bg : ctx.theme.text }}>{app.icon}</span><span className="max-w-full truncate font-mono text-[7px] uppercase tracking-wide sm:text-[8px]">{app.label}</span></button>)}</nav>
+        <div className="relative min-h-[36rem] overflow-hidden rounded-[1.8rem] border p-2 sm:rounded-none sm:p-5" style={{ borderColor: ctx.theme.line, background: `linear-gradient(145deg, ${ctx.theme.panel}, ${ctx.theme.bg})` }}><div className="absolute right-4 top-4"><AgeMark ctx={ctx} /></div><AnimatePresence mode="wait"><motion.section key={active} initial={reduced ? false : { opacity: 0, y: 14, scale: .985 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={reduced ? undefined : { opacity: 0, y: -8 }} className="mx-auto mt-12 w-full max-w-4xl border shadow-[8px_8px_0_var(--tp-line)]" style={{ borderColor: ctx.theme.text, background: ctx.theme.panel }}><div className="flex items-center justify-between border-b px-3 py-2 font-mono text-[9px] uppercase tracking-widest2" style={{ borderColor: ctx.theme.text }}><span>{APPS.find((app) => app.id === active)?.label}.app</span><span>— □ ×</span></div><AppBody active={active} ctx={ctx} /></motion.section></AnimatePresence></div>
+      </div>
+      <p className="mt-4 text-center font-mono text-[8px] uppercase tracking-[.32em] opacity-40">one window at a time · the rest stay safely minimized</p>
+    </motion.main>}</AnimatePresence>
+  </div>;
 }
+
+function AppBody({ active, ctx }: { active: AppKey; ctx: RenderCtx }) {
+  const [ran, setRan] = useState(false);
+  if (active === "photos") return <div className="p-4 sm:p-7"><p className="mb-5 font-mono text-[8px] uppercase tracking-widest2 opacity-45">{ctx.photos.length} saved files · automatic preview</p>{ctx.photos.length ? <AutoCarousel items={ctx.photos} getKey={(photo) => photo.id} kind="window" visible={ctx.device === "mobile" ? 1 : ctx.photos.length > 1 ? 2 : 1} label="Saved photo files" renderItem={(photo) => <Photo photo={photo} treatment="none" aspect={photo.orientation === "landscape" ? "aspect-[3/2] w-full" : "aspect-[4/5] w-full"} footprint="compact" />} /> : <Empty text="No photos have been linked yet." />}</div>;
+  if (active === "favorites") return <div className="grid min-h-96 place-items-center p-7 text-center"><div className="w-full max-w-2xl"><p className="font-mono text-[8px] uppercase tracking-widest2 opacity-45">favorites.json</p><TextCarousel items={[ctx.memories.song && `song / ${ctx.memories.song}`, ctx.memories.movie && `movie / ${ctx.memories.movie}`, ctx.memories.place && `place / ${ctx.memories.place}`, ctx.memories.obsession && `on repeat / ${ctx.memories.obsession}`].filter(Boolean) as string[]} kind="vertical" className="mt-8 font-display text-[clamp(2rem,7vw,4.5rem)] italic leading-tight" label="Favorite things" /></div></div>;
+  if (active === "memory") return <div className="grid min-h-96 place-items-center p-7"><div className="max-w-2xl"><p className="font-mono text-[8px] uppercase tracking-widest2 opacity-45">memory.txt · read only</p><p className="mt-7 font-display text-[clamp(2.2rem,7vw,4.6rem)] italic leading-tight">{ctx.memories.memory || ctx.memories.oneSentence || "This memory is waiting for its words."}</p><p className="mt-7 font-mono text-xs opacity-55">&gt; {ctx.memories.insideJoke || "the private note stays private"}</p></div></div>;
+  if (active === "messages") return <div className="grid min-h-96 place-items-center p-7"><div className="max-w-2xl rounded-[1.5rem] p-6 sm:p-9" style={{ background: ctx.theme.bg }}><p className="font-mono text-[8px] uppercase tracking-widest2 opacity-45">message from everyone who loves you</p><p className="mt-7 font-display text-[clamp(2.2rem,7vw,4.8rem)] italic leading-tight">{ctx.memories.message || `Happy birthday, ${ctx.name}. The internet is better with you in it.`}</p></div></div>;
+  return <div className="min-h-96 p-7 font-mono text-sm leading-8"><p>&gt; birthday.exe --upgrade {ctx.name.toLowerCase()}</p><button type="button" onClick={() => setRan(true)} className="mt-6 border px-4 py-2 text-[9px] uppercase tracking-widest2" style={{ borderColor: ctx.theme.text }}>{ran ? "RUN AGAIN" : "RUN UPDATE"}</button>{ran ? <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-8"><p>[████████████████] 100%</p><p className="mt-4 text-xl">UPDATE COMPLETE</p><p>{ctx.name.toUpperCase()} {ctx.age ?? "LATEST"}.0 RUNNING SUCCESSFULLY</p><p className="mt-8 font-sans text-[clamp(2rem,7vw,4.5rem)] italic leading-tight">{ctx.memories.ending || "STAY ONLINE. THE BEST PART IS NEXT."}</p></motion.div> : <p className="mt-8 opacity-45">waiting for user permission…</p>}</div>;
+}
+function Empty({ text }: { text: string }) { return <div className="grid min-h-72 place-items-center border border-dashed p-8 text-center font-mono text-[9px] uppercase tracking-widest2 opacity-45"><p>{text}</p></div>; }

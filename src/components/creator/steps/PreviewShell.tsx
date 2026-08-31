@@ -21,8 +21,8 @@ const CONTROL_LINKS: Array<{ step: CreatorStepId; label: string; note: string }>
 ];
 
 /** The creator only frames the work. The stage itself always uses the real recipient renderer. */
-export default function PreviewShell({ nav: _nav }: { nav: StepNav }) {
-  const { project, goToStep, dispatch } = useProject();
+export default function PreviewShell({ nav }: { nav: StepNav }) {
+  const { project, dispatch } = useProject();
   const [asRecipient, setAsRecipient] = useState(false);
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
   const [edit, setEdit] = useState(false);
@@ -47,7 +47,7 @@ export default function PreviewShell({ nav: _nav }: { nav: StepNav }) {
       <p className="mt-4 max-w-xl text-ink-soft">The frame below is the actual recipient experience: no dashboard, no navigation, just their photos and their story.</p>
 
       <nav className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-3 border-y border-line py-4">
-        {CONTROL_LINKS.map((c) => <button key={c.step} type="button" onClick={() => goToStep(c.step)} className="group text-left"><span className="font-display text-lg transition-colors group-hover:text-ember">{c.label}</span><span className="block font-mono text-[9px] uppercase tracking-widest2 text-ink-faint">{c.note}</span></button>)}
+        {CONTROL_LINKS.map((c) => <button key={c.step} type="button" onClick={() => nav.goTo(c.step)} className="group text-left"><span className="font-display text-lg transition-colors group-hover:text-ember">{c.label}</span><span className="block font-mono text-[9px] uppercase tracking-widest2 text-ink-faint">{c.note}</span></button>)}
         <div className="ml-auto flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest2">
           <button type="button" onClick={() => setDevice("desktop")} className={cn("border px-2 py-1", device === "desktop" && "border-ink bg-ink text-paper")}>Desktop</button>
           <button type="button" onClick={() => setDevice("mobile")} className={cn("border px-2 py-1", device === "mobile" && "border-ink bg-ink text-paper")}>Mobile</button>

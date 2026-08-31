@@ -3,117 +3,23 @@
 import React from "react";
 import type { RenderCtx } from "../system/types";
 import { Photo } from "../system/photo";
-import { Reveal } from "../system/Reveal";
-import { Finale } from "../system/finale";
-import { DistributedStory } from "../system/DistributedStory";
-import { byRole } from "../system/roles";
+import { AutoCarousel, TextCarousel } from "../system/AutoCarousel";
+import { allocatePhotoStory } from "../system/roles";
 import { AgeMark } from "../system/motifs";
 
-/**
- * 03 · COVER STAR — fashion editorial / independent magazine.
- * This webpage IS the magazine — not a mockup. Giant didone type, issue
- * numbering, sticky portrait sections, narrow editorial columns, whitespace,
- * a full-screen portrait moment, partial outside-viewport letters.
- */
 export default function CoverStar({ ctx }: { ctx: RenderCtx }) {
-  const { theme, photos, memories, name, age, title } = ctx;
-  const hero = ctx.hero ?? photos[0];
-  const cards = byRole(ctx.roles, "card");
-  const strips = byRole(ctx.roles, "strip");
-
-  return (
-    <div className="relative overflow-x-hidden">
-      {/* ── Issue cover spread ── */}
-      <section className="grid min-h-[100svh] grid-cols-1 lg:min-h-screen lg:grid-cols-12">
-        {/* Sticky left: masthead + giant number */}
-        <div className="relative flex flex-col justify-between px-6 py-10 lg:col-span-5 lg:sticky lg:top-0 lg:h-screen lg:px-12">
-          <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-widest2" style={{ color: theme.muted }}>
-            <span>THE BIRTHDAY EDITION</span>
-            <span>ISSUE {String(age ?? 0).padStart(3, "0")}</span>
-          </div>
-
-          <div className="py-10">
-            <p className="font-mono text-[11px] uppercase tracking-widest2" style={{ color: theme.accent }}>
-              {ctx.milestone?.label ?? "This season's star"}
-            </p>
-            <h1 className="mt-3 font-didone text-[clamp(5.75rem,25vw,9rem)] font-black leading-[0.85] tracking-tightest lg:text-[11rem]" style={{ fontFamily: ctx.fonts.display }}>
-              {age ?? "?"}
-            </h1>
-            <AgeMark ctx={ctx} />
-          </div>
-
-          <div className="max-w-xs">
-            <p className="font-display text-2xl font-light italic leading-snug">
-              {memories.oneSentence || `A birthday edition for ${name}.`}
-            </p>
-          </div>
-        </div>
-
-        {/* Right: cover portrait */}
-        <div className="relative lg:col-span-7">
-          {hero && (
-            <div className="relative h-[72svh] lg:h-full">
-              <Photo photo={hero} treatment={ctx.treatment} className="h-full w-full" fit="cover" />
-              <div
-                className="absolute right-4 top-6 rotate-90 origin-top-right font-mono text-[9px] uppercase tracking-widest2"
-                style={{ color: theme.panel }}
-              >
-                {ctx.milestone?.label ?? "COVER"}
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* ── Marquee strip ── */}
-      <section className="border-t px-6 py-14 sm:px-12" style={{ borderColor: theme.line }}>
-        <div className="tp-marquee-wrap">
-          <div className="tp-marquee font-didone text-6xl font-black uppercase tracking-tightest sm:text-8xl" style={{ fontFamily: ctx.fonts.display, color: theme.text }}>
-            <span className="px-6">{name} · issue {String(age ?? 0).padStart(3, "0")} · {title} ·</span>
-            <span className="px-6">{name} · issue {String(age ?? 0).padStart(3, "0")} · {title} ·</span>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Sticky portrait section with moving text ── */}
-      <section className="grid grid-cols-1 gap-0 lg:grid-cols-12">
-        {cards[0] && (
-          <div className="lg:sticky lg:top-0 lg:h-screen lg:col-span-6">
-            <Photo photo={cards[0]} treatment={ctx.treatment} className="h-full w-full" />
-          </div>
-        )}
-        <div className="flex flex-col gap-12 px-6 py-16 lg:col-span-6 lg:gap-16 lg:px-12 lg:py-20">
-          <NumberedNote n="01" label="the interview" text={memories.knownFor || "Add what they are known for."} theme={theme} />
-          <NumberedNote n="02" label="a favourite" text={memories.place || memories.song || "Add a favourite place or song."} theme={theme} />
-          <NumberedNote n="03" label="on repeat" text={memories.song || memories.movie || "Add a song, film, or current obsession."} theme={theme} />
-          {memories.memory && <NumberedNote n="04" label="a keepsake" text={memories.memory} theme={theme} />}
-        </div>
-      </section>
-
-      {/* ── Full-width strip of cards ── */}
-      {cards.length > 0 && (
-        <section className="mt-10 grid grid-cols-2 gap-1 sm:grid-cols-4">
-          {cards.map((p) => (
-            <Photo key={p.id} photo={p} treatment={ctx.treatment} aspect="aspect-[3/4] w-full" />
-          ))}
-        </section>
-      )}
-
-      <DistributedStory ctx={ctx} />
-      <Finale ctx={ctx} />
-    </div>
-  );
-}
-
-function NumberedNote({ n, label, text, theme }: { n: string; label: string; text: string; theme: RenderCtx["theme"] }) {
-  return (
-    <Reveal>
-      <p className="font-mono text-[10px] uppercase tracking-widest2" style={{ color: theme.accent }}>
-        {n} — {label}
-      </p>
-      <p className="mt-3 max-w-md font-didone text-2xl font-light leading-snug sm:text-3xl">
-        {text}
-      </p>
-    </Reveal>
-  );
+  const allocation = allocatePhotoStory(ctx.photos, ctx.hero?.id);
+  const rotation = [...allocation.carousel, ...allocation.secondaryPair, ...allocation.montage];
+  const ticker = [ctx.memories.threeWords, ctx.memories.song, ctx.memories.movie, ctx.memories.obsession].filter(Boolean) as string[];
+  const issue = String(ctx.age ?? 0).padStart(3, "0");
+  return <div className="relative overflow-hidden">
+    <section data-experience-chapter className="grid min-h-[88svh] lg:grid-cols-12"><div className="flex flex-col justify-between gap-10 px-6 py-10 lg:col-span-5 lg:px-12"><div className="flex justify-between font-mono text-[9px] uppercase tracking-widest2"><span>birthday edition</span><span>issue {issue}</span></div><div><AgeMark ctx={ctx} /><h1 className="mt-5 font-didone text-[clamp(4.8rem,15vw,10rem)] font-black uppercase leading-[.75]" style={{ fontFamily: ctx.fonts.display }}>{ctx.name}</h1><p className="mt-7 max-w-sm font-display text-2xl italic">{ctx.memories.oneSentence || "The story everyone will be talking about."}</p></div><p className="font-mono text-[9px] uppercase tracking-[.3em]">volume {issue} · {ctx.title}</p></div>{allocation.hero ? <div className="relative grid place-items-center px-5 pb-10 lg:col-span-7 lg:py-10"><Photo photo={allocation.hero} treatment="none" aspect={allocation.hero.orientation === "landscape" ? "aspect-[3/2] w-full max-w-4xl" : "aspect-[4/5] w-full max-w-2xl"} fit="contain" footprint="cinematic" /><span className="absolute right-5 top-4 origin-top-right rotate-90 font-mono text-[8px] uppercase tracking-[.38em]">cover subject · {ctx.name}</span></div> : null}</section>
+    {allocation.feature ? <section data-experience-chapter className="grid gap-10 border-y px-6 py-16 lg:grid-cols-12 lg:px-12" style={{ borderColor: ctx.theme.line }}><div className="lg:col-span-7"><Photo photo={allocation.feature} treatment="none" aspect={allocation.feature.orientation === "landscape" ? "aspect-[3/2] w-full" : "aspect-[4/5] w-full"} footprint="compact" /></div><div className="flex flex-col justify-between lg:col-span-5"><p className="font-mono text-[9px] uppercase tracking-[.35em] opacity-45">the profile · spread 02</p><div><p className="font-didone text-[clamp(2.5rem,6vw,5.5rem)] leading-[.9]" style={{ fontFamily: ctx.fonts.display }}>{ctx.memories.knownFor || `${ctx.name}, in their own words.`}</p><p className="mt-8 max-w-sm leading-relaxed opacity-65">{ctx.memories.place || ctx.memories.thingsTheyLove || "A portrait of the person behind the headline."}</p></div></div></section> : null}
+    <section data-experience-chapter className="tp-editorial-fold grid min-h-[45svh] place-items-center border-b px-6 py-16 text-center" style={{ borderColor: ctx.theme.line, transformOrigin: "left center" }}><blockquote className="max-w-5xl font-didone text-[clamp(3rem,10vw,8rem)] leading-[.82]" style={{ fontFamily: ctx.fonts.display }}>“{ctx.memories.alwaysSays || ctx.memories.insideJoke || "Still becoming the headline."}”</blockquote></section>
+    {allocation.pair.length ? <section data-experience-chapter className="grid gap-4 px-5 py-16 sm:grid-cols-2 sm:px-10">{allocation.pair.map((photo, index) => <figure key={photo.id} className={index ? "sm:mt-14" : ""}><Photo photo={photo} treatment="none" aspect={photo.orientation === "landscape" ? "aspect-[3/2] w-full" : "aspect-[4/5] w-full"} footprint="compact" /><figcaption className="mt-3 flex justify-between font-mono text-[8px] uppercase tracking-widest2 opacity-45"><span>plate {index + 1}</span><span>{photo.caption || "editorial study"}</span></figcaption></figure>)}</section> : null}
+    {rotation.length ? <section data-experience-chapter className="border-y px-5 py-16 sm:px-10" style={{ borderColor: ctx.theme.line }}><div className="mb-8 flex items-end justify-between gap-8"><div><p className="font-mono text-[9px] uppercase tracking-[.35em] opacity-45">current rotation</p><h2 className="mt-3 font-didone text-5xl" style={{ fontFamily: ctx.fonts.display }}>The edit</h2></div>{ticker.length ? <TextCarousel items={ticker} kind="vertical" autoMs={3900} className="hidden max-w-sm text-right font-display text-xl italic sm:block" label="Editorial ticker" /> : null}</div><AutoCarousel items={rotation} getKey={(photo) => photo.id} kind="editorial" visible={ctx.device === "mobile" ? 1 : rotation.length > 1 ? 2 : 1} label="Editorial photo rotation" renderItem={(photo, index) => <Photo photo={photo} treatment="none" aspect={photo.orientation === "landscape" ? "aspect-[3/2] w-full" : "aspect-[4/5] w-full"} footprint="compact" captionFallback={`editorial plate ${index + 1}`} />} /></section> : null}
+    <section data-experience-chapter className="grid gap-10 px-6 py-16 lg:grid-cols-[15rem_minmax(0,1fr)] lg:px-12"><aside className="border-t pt-4 font-mono text-[9px] uppercase tracking-widest2 leading-loose" style={{ borderColor: ctx.theme.line }}><p>sidebar / private notes</p><p className="mt-6 normal-case font-sans text-sm tracking-normal opacity-65">{ctx.memories.insideJoke || "A footnote only the right people understand."}</p></aside><div className="grid gap-8 sm:grid-cols-[minmax(0,1fr)_minmax(14rem,.7fr)] sm:items-center">{allocation.reveal ? <Photo photo={allocation.reveal} treatment="none" aspect={allocation.reveal.orientation === "landscape" ? "aspect-[3/2] w-full" : "aspect-[4/5] w-full"} footprint="compact" className="tp-editorial-fold" /> : <div />}<p className="font-didone text-[clamp(2.5rem,7vw,5rem)] italic leading-[.93]" style={{ fontFamily: ctx.fonts.display }}>{ctx.memories.memory || "The fold-out portrait: one moment worth keeping open."}</p></div></section>
+    <section data-experience-chapter className="grid gap-10 border-t px-6 py-16 md:grid-cols-2 md:items-center md:px-12" style={{ borderColor: ctx.theme.line }}>{allocation.memory ? <Photo photo={allocation.memory} treatment="none" aspect={allocation.memory.orientation === "landscape" ? "aspect-[3/2] w-full" : "aspect-[4/5] w-full"} footprint="compact" /> : null}<div><p className="font-mono text-[9px] uppercase tracking-widest2 opacity-45">editor&apos;s letter</p><p className="mt-6 font-didone text-[clamp(2.3rem,6vw,4.5rem)] leading-tight" style={{ fontFamily: ctx.fonts.display }}>{ctx.memories.message || `Happy birthday, ${ctx.name}. You were always the cover story.`}</p></div></section>
+    <footer className="grid min-h-[58svh] place-items-center px-6 py-16 text-center" style={{ background: ctx.theme.text, color: ctx.theme.bg }}><div>{allocation.finale ? <div className="mx-auto mb-8 w-36 sm:w-48"><Photo photo={allocation.finale} treatment="none" aspect="aspect-[4/5] w-full" footprint="compact" showCaption={false} /></div> : null}<p className="font-mono text-[9px] uppercase tracking-[.4em] opacity-55">back cover · issue {issue}</p><h2 className="mt-7 font-didone text-[clamp(3.8rem,13vw,9rem)] leading-[.75]" style={{ fontFamily: ctx.fonts.display }}>{ctx.memories.ending || "TO BE CONTINUED."}</h2></div></footer>
+  </div>;
 }

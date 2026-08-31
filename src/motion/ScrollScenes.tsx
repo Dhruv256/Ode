@@ -31,7 +31,3 @@ export function Parallax({ children, depth = 0.35, className }: { children: Reac
   const y = useTransform(scrollYProgress, [0, 1], reduced ? [0, 0] : [70 * depth, -70 * depth]);
   return <motion.div ref={ref} className={className} style={{ y }}>{children}</motion.div>;
 }
-
-export function HorizontalMemories({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={`overflow-x-auto overscroll-x-contain snap-x snap-mandatory touch-pan-x [scrollbar-width:thin] ${className ?? ""}`} aria-label="Memory montage. Swipe or scroll sideways to view every frame"><div className="flex w-max will-change-transform">{children}</div></div>;
-}

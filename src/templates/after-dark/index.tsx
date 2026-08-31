@@ -1,30 +1,32 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
 import type { RenderCtx } from "../system/types";
 import { Photo } from "../system/photo";
-import { Finale } from "../system/finale";
-import { DistributedStory } from "../system/DistributedStory";
-import { byRole } from "../system/roles";
-import { CheckeredMark } from "../system/motifs";
+import { AutoCarousel, TextCarousel } from "../system/AutoCarousel";
+import { allocatePhotoStory } from "../system/roles";
 
-/** A nocturnal photo journal: flash frames, a poster-like opening and no nightlife assumptions. */
 export default function AfterDark({ ctx }: { ctx: RenderCtx }) {
-  const shots = byRole(ctx.roles, "card");
-  const hero = ctx.hero ?? ctx.photos[0];
-  return <div className="min-h-screen bg-[#090909] text-[#f4f0e7]" style={{ background: ctx.theme.text, color: ctx.theme.bg }}>
-    <section className="relative min-h-[100svh] overflow-hidden px-6 py-10 sm:min-h-screen sm:px-12">
-      <div className="absolute inset-0 opacity-20 tp-grain" />
-      <div className="relative flex justify-between font-mono text-[10px] uppercase tracking-widest2"><span>flash diary</span><CheckeredMark /></div>
-      <div className="relative mt-[20svh] max-w-4xl sm:mt-[28vh]">
-        <p className="font-mono text-[10px] uppercase tracking-widest2" style={{ color: ctx.theme.accent }}>the late edition</p>
-        <h1 className="mt-3 font-display text-[17vw] leading-[.78] sm:text-[10rem]" style={{ fontFamily: ctx.fonts.display }}>{ctx.age ?? "?"}<br />AFTER<br />DARK</h1>
-        <p className="mt-7 max-w-sm text-lg italic opacity-70">{ctx.memories.oneSentence || "A collection that stays up a little longer."}</p>
-      </div>
-      {hero && <div className="relative mt-8 ml-auto w-[62vw] max-w-sm rotate-2 border-4 border-white/80 sm:absolute sm:bottom-8 sm:right-12 sm:mt-0 sm:w-[47vw]"><Photo photo={hero} treatment="flash" aspect="aspect-[3/4] w-full" /></div>}
-    </section>
-    <section className="px-4 py-16 sm:px-12"><div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{shots.slice(0, 12).map((p, i) => <div className={i % 3 === 0 ? "col-span-2" : ""} key={p.id}><Photo photo={p} treatment="flash" aspect={i % 3 === 0 ? "aspect-[16/10] w-full" : "aspect-[3/4] w-full"} /><p className="mt-1 font-mono text-[9px] uppercase tracking-widest text-white/50">frame {String(i + 1).padStart(2, "0")}</p></div>)}</div></section>
-    <DistributedStory ctx={ctx} />
-    <Finale ctx={ctx} />
+  const [flash, setFlash] = useState(0);
+  const reduced = useReducedMotion();
+  const allocation = allocatePhotoStory(ctx.photos, ctx.hero?.id);
+  const vertical = [allocation.feature, ...allocation.carousel, ...allocation.montage].filter(Boolean) as NonNullable<typeof allocation.hero>[];
+  return <div className="min-h-screen overflow-hidden bg-[#050505] text-[#f7f3e9]" onPointerMove={(event) => { if (reduced) return; event.currentTarget.style.setProperty("--trail-x", `${event.clientX}px`); event.currentTarget.style.setProperty("--trail-y", `${event.clientY}px`); }}>
+    <div aria-hidden className="tp-night-trail pointer-events-none fixed z-20 h-40 w-40 rounded-full" />
+    <section data-experience-chapter className="relative grid min-h-[72svh] place-items-center px-5 py-14 text-center"><button type="button" onClick={() => setFlash((value) => value + 1)} className="relative z-10"><p className="font-mono text-[9px] uppercase tracking-[.4em] opacity-55">tap for the first flash</p><h1 className="mt-7 font-display text-[clamp(4.8rem,18vw,12rem)] font-black uppercase leading-[.68]" style={{ fontFamily: ctx.fonts.display }}>{ctx.age ?? "?"}<br />after<br />dark</h1><p className="mt-7 font-mono text-[9px] uppercase tracking-widest2 opacity-55">{ctx.name} · one night only</p></button><motion.span key={flash} initial={reduced ? false : { opacity: flash ? 1 : 0 }} animate={{ opacity: 0 }} transition={{ duration: .45 }} className="pointer-events-none absolute inset-0 z-20 bg-white" /></section>
+    {allocation.hero ? <section data-experience-chapter className="grid min-h-[58svh] place-items-center px-5 py-14"><motion.div initial={reduced ? false : { opacity: .08, rotate: -7, scale: .9 }} whileInView={{ opacity: 1, rotate: -1, scale: 1 }} viewport={{ amount: .5 }} className="w-full max-w-2xl border-4 border-white"><Photo photo={allocation.hero} treatment="flash" aspect={allocation.hero.orientation === "landscape" ? "aspect-[3/2] w-full" : "aspect-[4/5] w-full"} footprint="cinematic" /></motion.div></section> : null}
+    {allocation.pair.length ? <section data-experience-chapter className="grid gap-5 px-5 py-16 sm:grid-cols-2 sm:px-10">{allocation.pair.map((photo, index) => <div key={photo.id} className={index ? "rotate-2 sm:mt-12" : "-rotate-2"}><Photo photo={photo} treatment="flash" aspect={photo.orientation === "landscape" ? "aspect-[3/2] w-full" : "aspect-[4/5] w-full"} footprint="compact" /></div>)}</section> : null}
+    <section data-experience-chapter className="grid min-h-[34svh] place-items-center px-6 py-12 text-center"><TextCarousel items={[ctx.memories.threeWords, ctx.memories.obsession, ctx.memories.alwaysSays].filter(Boolean) as string[]} kind="fade" autoMs={3200} className="font-display text-[clamp(3rem,11vw,8rem)] font-black uppercase leading-[.75]" label="After-dark type beat" /></section>
+    {vertical.length ? <section data-experience-chapter className="mx-auto max-w-3xl px-5 py-16"><p className="mb-7 font-mono text-[9px] uppercase tracking-[.36em] opacity-45">vertical roll · flashes advance automatically</p><AutoCarousel items={vertical} getKey={(photo) => photo.id} kind="vertical" visible={1} autoMs={4100} label="Vertical after-dark roll" viewportClassName="mx-auto max-w-xl" renderItem={(photo) => <Photo photo={photo} treatment="flash" aspect={photo.orientation === "landscape" ? "aspect-[3/2] w-full" : "aspect-[4/5] w-full"} footprint="compact" />} /></section> : null}
+    <section data-experience-chapter className="grid min-h-[38svh] place-items-center border-y border-white/15 px-6 py-14 text-center"><blockquote className="max-w-5xl font-display text-[clamp(2.6rem,8vw,6rem)] italic leading-[.9]">“{ctx.memories.insideJoke || ctx.memories.knownFor || "The night remembers what the camera caught."}”</blockquote></section>
+    {allocation.reveal ? <FlashFrame photo={allocation.reveal} ctx={ctx} /> : null}
+    <section data-experience-chapter className="grid min-h-[32svh] place-items-center px-6 py-12 text-center"><motion.p animate={reduced ? undefined : { opacity: [.35, 1, .35], scale: [.98, 1.02, .98] }} transition={{ duration: 2.4, repeat: Infinity }} className="font-mono text-[clamp(1.2rem,5vw,3rem)] uppercase tracking-[.28em]">{ctx.memories.song || "bass / breath / flash / repeat"}</motion.p></section>
+    {allocation.secondaryPair.length ? <section data-experience-chapter className="grid gap-5 px-5 py-16 sm:grid-cols-2 sm:px-10">{allocation.secondaryPair.map((photo, index) => <Photo key={photo.id} photo={photo} treatment="flash" aspect={photo.orientation === "landscape" ? "aspect-[3/2] w-full" : "aspect-[4/5] w-full"} footprint="compact" className={index ? "sm:mt-12" : ""} />)}</section> : null}
+    <section data-experience-chapter className="grid gap-9 px-6 py-16 md:grid-cols-2 md:items-center md:px-12">{allocation.memory ? <Photo photo={allocation.memory} treatment="flash" aspect={allocation.memory.orientation === "landscape" ? "aspect-[3/2] w-full" : "aspect-[4/5] w-full"} footprint="compact" /> : null}<div><p className="font-mono text-[9px] uppercase tracking-widest2 opacity-40">quiet corner · 03:17</p><p className="mt-6 font-display text-[clamp(2.3rem,6vw,4.6rem)] italic leading-tight">{ctx.memories.memory || "One memory that outlived the night."}</p></div></section>
+    <section data-experience-chapter className="grid min-h-[40svh] place-items-center border-t border-white/15 px-6 py-14 text-center"><p className="max-w-4xl font-display text-[clamp(2.6rem,8vw,5.8rem)] italic leading-[.9]">{ctx.memories.message || `Happy birthday, ${ctx.name}. You make every room brighter.`}</p></section>
+    <footer className="grid min-h-[42svh] place-items-center px-6 py-14 text-center">{allocation.finale ? <div><div className="mx-auto w-36 sm:w-48"><Photo photo={allocation.finale} treatment="flash" aspect="aspect-[4/5] w-full" footprint="compact" showCaption={false} /></div><p className="mt-7 font-mono text-[9px] uppercase tracking-[.4em] opacity-40">lights out</p><h2 className="mt-5 font-display text-[clamp(3rem,10vw,7rem)] uppercase leading-[.8]">{ctx.memories.ending || `GOODNIGHT, ${ctx.name}.`}</h2></div> : null}</footer>
   </div>;
 }
+
+function FlashFrame({ photo, ctx }: { photo: RenderCtx["photos"][number]; ctx: RenderCtx }) { const [shown, setShown] = useState(false); return <section data-experience-chapter className="grid min-h-[48svh] place-items-center px-5 py-14"><button type="button" onClick={() => setShown((value) => !value)} className="relative w-full max-w-2xl border border-white/25 p-4 text-left"><Photo photo={photo} treatment="flash" aspect={photo.orientation === "landscape" ? "aspect-[3/2] w-full" : "aspect-[4/5] w-full"} footprint="compact" imgClassName={shown ? "opacity-100" : "opacity-10"} /><span className="mt-3 block font-mono text-[9px] uppercase tracking-widest2 opacity-50">{shown ? photo.caption || "flash held" : "tap to fire the flash"}</span></button></section>; }

@@ -1,24 +1,31 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import { motion, useReducedMotion } from "framer-motion";
+import type { PhotoAsset } from "@/lib/types";
 import type { RenderCtx } from "../system/types";
 import { Photo } from "../system/photo";
-import { Finale } from "../system/finale";
-import { DistributedStory } from "../system/DistributedStory";
-import { byRole } from "../system/roles";
+import { AutoCarousel, TextCarousel } from "../system/AutoCarousel";
+import { allocatePhotoStory } from "../system/roles";
 
 export default function SundayMorning({ ctx }: { ctx: RenderCtx }) {
-  const photos = ctx.photos;
-  const cards = byRole(ctx.roles, "card");
-  const hero = ctx.hero ?? photos[0];
-  return <div className="min-h-screen" style={{ background: ctx.theme.bg, color: ctx.theme.text }}>
-    <section className="mx-auto flex min-h-[100svh] max-w-6xl flex-col justify-between px-6 py-10 sm:min-h-screen sm:px-12">
-      <div className="flex justify-between font-mono text-[10px] uppercase tracking-widest2 opacity-55"><span>Sunday morning</span><span>{ctx.age ?? "—"} years, held gently</span></div>
-      <div className="grid items-end gap-10 lg:grid-cols-12"><div className="lg:col-span-5"><p className="font-display text-3xl italic leading-tight sm:text-5xl" style={{ fontFamily: ctx.fonts.display }}>{ctx.memories.oneSentence || `A softer look at ${ctx.name}.`}</p><p className="mt-8 max-w-xs font-hand text-2xl opacity-70">{ctx.memories.alwaysSays || "leave a small note here"}</p></div>{hero && <div className="order-first lg:order-none lg:col-span-6 lg:col-start-7"><Photo photo={hero} treatment="warm" aspect="aspect-[4/5] w-full" /></div>}</div>
-      <h1 className="max-w-4xl font-display text-[15vw] leading-[.78] tracking-tightest sm:text-[9rem]" style={{ fontFamily: ctx.fonts.display }}>{ctx.name}<br /><em>at {ctx.age ?? "this"}.</em></h1>
-    </section>
-    <section className="mx-auto max-w-5xl px-6 py-20 sm:px-12"><p className="font-mono text-[10px] uppercase tracking-widest2 opacity-50">small things, deliberately kept</p><div className="mt-10 grid gap-12 sm:grid-cols-2">{cards.slice(0, 6).map((p, i) => <div key={p.id} className={i % 2 ? "sm:translate-y-16" : ""}><Photo photo={p} treatment="warm" aspect={i % 3 ? "aspect-[4/5] w-full" : "aspect-[3/2] w-full"} /><p className="mt-3 max-w-xs font-serif italic opacity-70">{p.caption || "Add the story behind this photo"}</p></div>)}</div></section>
-    <DistributedStory ctx={ctx} />
-    <Finale ctx={ctx} />
+  const reduced = useReducedMotion();
+  const allocation = allocatePhotoStory(ctx.photos, ctx.hero?.id);
+  const twoImageRoll = [allocation.reveal, ...allocation.pair, ...allocation.carousel, ...allocation.secondaryPair, ...allocation.montage].filter(Boolean) as PhotoAsset[];
+  const favorites = [ctx.memories.song, ctx.memories.movie, ctx.memories.place, ctx.memories.thingsTheyLove].filter(Boolean) as string[];
+  return <div className="tp-paper min-h-screen" style={{ background: ctx.theme.bg, color: ctx.theme.text }}>
+    <section data-experience-chapter className="relative grid min-h-[72svh] overflow-hidden px-6 py-10 sm:px-12 lg:grid-cols-12 lg:items-end"><motion.span aria-hidden animate={reduced ? undefined : { x: ["-30%", "180%"] }} transition={{ duration: 18, repeat: Infinity, repeatType: "mirror", ease: "easeInOut" }} className="tp-window-light absolute -inset-y-20 w-[36%] rotate-12" /><div className="relative z-10 lg:col-span-5"><p className="font-mono text-[9px] uppercase tracking-widest2 opacity-40">Sunday · 09:12 · soft light</p><h1 className="mt-8 font-display text-[clamp(4rem,12vw,8rem)] leading-[.78]" style={{ fontFamily: ctx.fonts.display }}>{ctx.name}<br /><em>at {ctx.age ?? "this moment"}.</em></h1></div>{allocation.hero ? <div className="relative z-10 mt-10 lg:col-span-6 lg:col-start-7 lg:mt-0"><Photo photo={allocation.hero} treatment="warm" aspect={allocation.hero.orientation === "landscape" ? "aspect-[3/2] w-full" : "aspect-[4/5] w-full"} footprint="cinematic" className="shadow-[0_30px_80px_rgba(70,50,20,.16)]" /></div> : null}</section>
+    <section data-experience-chapter className="grid min-h-[30svh] place-items-center px-6 py-12 text-center"><p className="max-w-3xl font-display text-[clamp(2.2rem,7vw,4.8rem)] italic leading-tight">{ctx.memories.oneSentence || `A quiet morning with ${ctx.name}.`}</p></section>
+    <section data-experience-chapter className="relative grid min-h-[30svh] place-items-center overflow-hidden"><motion.span aria-hidden animate={reduced ? undefined : { x: [-160, 160], opacity: [.25, .55, .25] }} transition={{ duration: 12, repeat: Infinity, repeatType: "mirror" }} className="tp-window-light h-[160%] w-40 rotate-12" /><p className="absolute font-hand text-2xl opacity-45">stay here a moment</p></section>
+    {allocation.feature ? <section data-experience-chapter className="mx-auto grid max-w-5xl gap-10 px-6 py-16 md:grid-cols-2 md:items-center"><Photo photo={allocation.feature} treatment="warm" aspect={allocation.feature.orientation === "landscape" ? "aspect-[3/2] w-full" : "aspect-[4/5] w-full"} footprint="compact" /><blockquote className="font-display text-[clamp(2.3rem,6vw,4.6rem)] italic leading-tight">“{ctx.memories.alwaysSays || allocation.feature.caption || "Some things are best said softly."}”</blockquote></section> : null}
+    <section data-experience-chapter className="grid min-h-[34svh] place-items-center border-y px-6 py-14 text-center" style={{ borderColor: ctx.theme.line }}><div className="w-full max-w-3xl"><p className="font-mono text-[9px] uppercase tracking-[.36em] opacity-40">a few favourite things</p><TextCarousel items={favorites} kind="fade" autoMs={4800} className="mt-8 font-display text-[clamp(2.5rem,8vw,5.8rem)] italic leading-none" label="Favorite things" /></div></section>
+    <FoldedNote ctx={ctx} />
+    {twoImageRoll.length ? <section data-experience-chapter className="mx-auto max-w-6xl px-5 py-16 sm:px-10"><p className="mb-7 font-mono text-[9px] uppercase tracking-[.34em] opacity-40">two images on the table · automatic</p><AutoCarousel items={twoImageRoll} getKey={(photo) => photo.id} kind="fade" visible={ctx.device === "mobile" ? 1 : twoImageRoll.length > 1 ? 2 : 1} autoMs={5400} label="Sunday table photos" renderItem={(photo, index) => <Photo photo={photo} treatment="warm" aspect={photo.orientation === "landscape" ? "aspect-[3/2] w-full" : "aspect-[4/5] w-full"} footprint="compact" className={index % 2 ? "sm:mt-9" : ""} />} /></section> : null}
+    <section data-experience-chapter className="mx-auto grid max-w-5xl gap-10 px-6 py-16 md:grid-cols-2 md:items-center">{allocation.memory ? <Photo photo={allocation.memory} treatment="warm" aspect={allocation.memory.orientation === "landscape" ? "aspect-[3/2] w-full" : "aspect-[4/5] w-full"} footprint="compact" /> : null}<div><p className="font-mono text-[9px] uppercase tracking-widest2 opacity-40">one memory before noon</p><p className="mt-7 font-display text-[clamp(2.2rem,6vw,4.5rem)] italic leading-tight">{ctx.memories.memory || "The kind of morning you remember years later."}</p></div></section>
+    <Letter ctx={ctx} />
+    <footer className="grid min-h-[34svh] place-items-center px-6 py-14 text-center"><div>{allocation.finale ? <div className="mx-auto mb-7 w-28 sm:w-36"><Photo photo={allocation.finale} treatment="warm" aspect="aspect-[4/5] w-full" footprint="compact" showCaption={false} /></div> : null}<p className="font-hand text-[clamp(2.8rem,9vw,6.5rem)] leading-[.86]">{ctx.memories.ending || "with all our love"}</p></div></footer>
   </div>;
 }
+
+function FoldedNote({ ctx }: { ctx: RenderCtx }) { const [open, setOpen] = useState(false); return <section data-experience-chapter className="grid min-h-[32svh] place-items-center px-6 py-12"><button type="button" onClick={() => setOpen((value) => !value)} className="w-full max-w-xl border p-6 text-left shadow-[0_18px_50px_rgba(70,50,20,.12)]" style={{ borderColor: ctx.theme.line, background: ctx.theme.panel }} aria-expanded={open}><p className="font-mono text-[9px] uppercase tracking-widest2 opacity-40">folded note · {open ? "open" : "tap corner"}</p><p className={`mt-6 font-hand text-3xl transition-[max-height,opacity] ${open ? "max-h-60 opacity-100" : "max-h-0 overflow-hidden opacity-0"}`}>{ctx.memories.insideJoke || "A small joke folded into the quiet."}</p></button></section>; }
+function Letter({ ctx }: { ctx: RenderCtx }) { const [open, setOpen] = useState(false); const reduced = useReducedMotion(); return <section data-experience-chapter className="grid min-h-[54svh] place-items-center px-6 py-16"><button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} className="w-full max-w-2xl text-left" style={{ perspective: 1200 }}><motion.div animate={{ rotateX: open ? 0 : -76, y: open ? 0 : 24 }} transition={{ duration: reduced ? 0 : .75 }} className="origin-top border p-7 shadow-[0_20px_80px_rgba(60,42,16,.15)] sm:p-12" style={{ borderColor: ctx.theme.line, background: ctx.theme.panel }}><p className="font-mono text-[9px] uppercase tracking-[.35em] opacity-40">a birthday letter for {ctx.name}</p><p className="mt-9 font-display text-[clamp(2rem,6vw,4rem)] italic leading-relaxed">{open ? ctx.memories.message || `Happy birthday, ${ctx.name}. There is so much good still ahead.` : "tap to unfold"}</p></motion.div></button></section>; }

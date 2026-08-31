@@ -3,6 +3,7 @@
 "use client";
 
 import React, { useMemo } from "react";
+import dynamic from "next/dynamic";
 import type { BirthdayProject, TemplateId } from "@/lib/types";
 import { resolveProjectColors } from "@/lib/palettes";
 import { milestoneOf, milestoneTitleFor } from "@/lib/milestones";
@@ -16,20 +17,21 @@ import type { MemBundle, RenderCtx } from "./system/types";
 import ContactSheet from "./contact-sheet";
 import CutAndPaste from "./cut-and-paste";
 import CoverStar from "./cover-star";
-import Cinema from "./cinema";
 import InternetPerson from "./internet-person";
 import Archive from "./archive";
 import AfterDark from "./after-dark";
 import SundayMorning from "./sunday-morning";
-import PolaroidWall from "./polaroid-wall";
-import Dreamscape from "./dreamscape";
-import PosterCity from "./poster-city";
 import Yearbook from "./yearbook";
+
+const Cinema = dynamic(() => import("./cinema"), { ssr: false });
+const PolaroidWall = dynamic(() => import("./polaroid-wall"), { ssr: false });
+const Dreamscape = dynamic(() => import("./dreamscape"), { ssr: false });
+const PosterCity = dynamic(() => import("./poster-city"), { ssr: false });
 
 import { cn } from "@/lib/utils";
 import { SoundtrackControl } from "@/components/media/SoundtrackControl";
 import { CountdownGate } from "./system/CountdownGate";
-import { useMobileComposition } from "./system/responsive";
+import { useMobileComposition, usePerformanceTier, type PerformanceTier } from "./system/responsive";
 
 const REGISTRY: Record<TemplateId, React.ComponentType<{ ctx: RenderCtx }>> = {
   "contact-sheet": ContactSheet,
@@ -78,7 +80,8 @@ export function buildCtx(
   id: TemplateId,
   device: "desktop" | "mobile",
   edit: boolean,
-  onEdit?: (key: string, value: string) => void
+  onEdit?: (key: string, value: string) => void,
+  performanceTier: PerformanceTier = "medium",
 ): RenderCtx {
   const colors = resolveProjectColors(project.paletteId, project.customPalette) ?? ["#F4F0E7", "#1B1815", "#B4502A", "#6E56CF", "#5A6B4D"];
   const theme = buildTheme(colors);
@@ -107,6 +110,7 @@ export function buildCtx(
     memories: buildMemories(project),
     edit,
     device,
+    performanceTier,
     onEdit,
   };
 }
@@ -132,10 +136,11 @@ export function TemplateView({
   className?: string;
 }) {
   const viewportIsMobile = useMobileComposition();
+  const performanceTier = usePerformanceTier();
   const resolvedDevice = device === "auto" ? (viewportIsMobile ? "mobile" : "desktop") : device;
   const ctx = useMemo(
-    () => buildCtx(project, templateId, resolvedDevice, edit, onEdit),
-    [project, templateId, resolvedDevice, edit, onEdit]
+    () => buildCtx(project, templateId, resolvedDevice, edit, onEdit, performanceTier),
+    [project, templateId, resolvedDevice, edit, onEdit, performanceTier]
   );
   const Body = REGISTRY[templateId];
   const vars = useMemo(() => themeVars(ctx.theme), [ctx.theme]);
@@ -149,9 +154,10 @@ export function TemplateView({
       className={cn("birthday-template relative", className)}
       data-template={templateId}
       data-composition={resolvedDevice}
-      style={{ ...vars, background: ctx.theme.bg, color: ctx.theme.text, fontFamily: ctx.fonts.body }}
+      data-performance-tier={performanceTier}
+      style={{ ...vars, "--tp-display": ctx.fonts.display, background: ctx.theme.bg, color: ctx.theme.text, fontFamily: ctx.fonts.body } as React.CSSProperties}
     >
-      {onEdit ? <><SoundtrackControl soundtrack={project.soundtrack} templateId={templateId} /><Body ctx={ctx} /></> : <CountdownGate ctx={ctx}><SoundtrackControl soundtrack={project.soundtrack} templateId={templateId} /><Body ctx={ctx} /></CountdownGate>}
+      {onEdit ? <><SoundtrackControl soundtrack={project.soundtrack} templateId={templateId} preview /><Body ctx={ctx} /></> : <CountdownGate ctx={ctx}><SoundtrackControl soundtrack={project.soundtrack} templateId={templateId} /><Body ctx={ctx} /></CountdownGate>}
     </div>
   );
 }

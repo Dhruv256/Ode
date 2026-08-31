@@ -1,149 +1,49 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import type { RenderCtx } from "../system/types";
+import type { PhotoAsset } from "@/lib/types";
 import { Photo } from "../system/photo";
-import { Reveal } from "../system/Reveal";
-import { Finale } from "../system/finale";
-import { DistributedStory } from "../system/DistributedStory";
-import { AgeMark, InterestMotifs } from "../system/motifs";
-import { byRole } from "../system/roles";
-import { cn } from "@/lib/utils";
+import { AutoCarousel, TextCarousel } from "../system/AutoCarousel";
+import { allocatePhotoStory } from "../system/roles";
 
-/**
- * 01 · CONTACT SHEET — an analog photographer's archive.
- * Film-counter entrance, rotated/uneven contact frames, film strips,
- * huge frame numbers, grease-pencil annotations. Metadata rendered only
- * when the user actually supplied it — never fabricated.
- */
 export default function ContactSheet({ ctx }: { ctx: RenderCtx }) {
-  const { theme, photos, memories, age } = ctx;
-  const frames = byRole(ctx.roles, "contact-frame");
-  const strips = byRole(ctx.roles, "strip");
-  const bleed = byRole(ctx.roles, "full-bleed");
+  const allocation = allocatePhotoStory(ctx.photos, ctx.hero?.id);
+  const finalSheet = allocation.montage.length ? allocation.montage : [allocation.finale, ...allocation.secondaryPair].filter(Boolean) as PhotoAsset[];
+  const film = [allocation.feature, ...allocation.carousel].filter(Boolean) as PhotoAsset[];
 
-  return (
-    <div className="relative">
-      {/* ── Opening plate ── */}
-      <section className="relative min-h-[100svh] overflow-hidden px-6 py-16 sm:min-h-screen sm:px-12 sm:py-24">
-        <div className="tp-grain absolute inset-0" />
-        <div className="relative">
-          <div className="flex items-center justify-between font-mono text-[10px] uppercase tracking-widest2" style={{ color: theme.muted }}>
-            <span>ROLL 0{String(age ?? 24).padStart(2, "0")}</span>
-            <span>{ctx.milestone?.label ?? "A ROLL"}</span>
-            <span>ISO 400 · 35MM</span>
-          </div>
+  return <div className="relative bg-[#120909] text-[#f2ded2]">
+    <section data-experience-chapter className="grid min-h-[56svh] place-items-center px-6 py-16 text-center">
+      <div><p className="font-mono text-[10px] uppercase tracking-[.42em] opacity-50">film leader · roll {String(ctx.age ?? 0).padStart(3, "0")}</p><h1 className="mt-7 font-display text-[clamp(3.75rem,14vw,10rem)] font-black uppercase leading-[.77]" style={{ fontFamily: ctx.fonts.display }}>Property of<br />{ctx.name}</h1><p className="mx-auto mt-8 max-w-lg font-display text-xl italic opacity-70">{ctx.memories.oneSentence || "A life, inspected one exposure at a time."}</p></div>
+    </section>
 
-          <div className="mt-16 sm:mt-24">
-            <h1 className="font-display text-[16vw] font-black leading-[0.86] tracking-tightest sm:text-[9rem] lg:text-[13rem]" style={{ fontFamily: ctx.fonts.display }}>
-              {ctx.title}
-            </h1>
-            <p className="mt-4 font-mono text-[11px] uppercase tracking-widest2" style={{ color: theme.muted }}>
-              A contact sheet of their years
-            </p>
-          </div>
+    {allocation.hero ? <section data-experience-chapter className="grid gap-10 bg-[#eadfd2] px-5 py-16 text-[#1d1713] lg:grid-cols-[minmax(0,1fr)_12rem] lg:px-12">
+      <div className="tp-develop-photo mx-auto w-full max-w-3xl" style={{ perspective: 900 }}><Photo photo={allocation.hero} treatment="grain" aspect={allocation.hero.orientation === "landscape" ? "aspect-[3/2] w-full" : "aspect-[4/5] w-full"} fit="contain" /></div>
+      <dl className="flex flex-col justify-end gap-5 border-l pl-5 font-mono text-[9px] uppercase tracking-widest2"><Meta label="frame" value="001" /><Meta label="place" value={allocation.hero.location || ctx.memories.place || "unrecorded"} /><Meta label="date" value={allocation.hero.dateTaken || "undated"} /><Meta label="known for" value={ctx.memories.knownFor || "kept in focus"} /></dl>
+    </section> : null}
 
-          <div className="mt-10 flex flex-wrap items-end justify-between gap-6">
-            <AgeMark ctx={ctx} />
-            <InterestMotifs ctx={ctx} />
-            {memories.oneSentence && (
-              <p className="max-w-sm font-display text-lg italic opacity-80">{memories.oneSentence}</p>
-            )}
-          </div>
-        </div>
+    {film.length ? <section data-experience-chapter className="bg-[#1b0b0b] px-5 py-14 sm:px-10"><p className="mb-7 font-mono text-[9px] uppercase tracking-[.36em] opacity-50">automatic film advance</p><AutoCarousel items={film} getKey={(photo) => photo.id} kind="film" visible={ctx.device === "mobile" ? 1 : film.length > 1 ? 2 : 1} autoMs={4800} label="Automatic film roll" renderItem={(photo, index) => <figure className="border-y-[10px] border-black bg-black p-2"><Photo photo={photo} treatment={index === 1 ? "bw" : "grain"} aspect={photo.orientation === "landscape" ? "aspect-[3/2] w-full" : "aspect-[4/5] w-full"} footprint="compact" /><figcaption className="mt-2 flex justify-between font-mono text-[8px] uppercase tracking-widest text-white/50"><span>frame {String(index + 2).padStart(3, "0")}</span><span>{photo.caption || photo.location || "kept"}</span></figcaption></figure>} /></section> : null}
 
-        {photos[0] && (
-          <Reveal className="relative mt-16">
-            <Photo photo={photos[0]} treatment={ctx.treatment} aspect="aspect-[4/5] w-3/4 sm:w-2/5" className="rotate-[-1.5deg]" />
-            <FrameMeta meta={photos[0]} index={1} theme={theme} hand />
-          </Reveal>
-        )}
-      </section>
+    <section data-experience-chapter className="grid min-h-[44svh] place-items-center bg-[#eadfd2] px-6 py-14 text-[#1d1713]"><TextCarousel items={[ctx.memories.threeWords, ctx.memories.thingsTheyLove, ctx.memories.song ? `on the reel: ${ctx.memories.song}` : ""].filter(Boolean) as string[]} kind="vertical" autoMs={4300} className="w-full max-w-2xl text-center font-hand text-[clamp(2rem,7vw,4.5rem)] leading-tight" label="Handwritten darkroom notes" /></section>
 
-      {/* ── Dense contact grid, interrupted by a giant frame ── */}
-      {frames.length > 0 && (
-        <section className="relative border-t px-5 py-16 sm:px-10" style={{ borderColor: theme.line }}>
-          <div className="mb-8 flex items-center gap-4 font-mono text-[10px] uppercase tracking-widest2" style={{ color: theme.muted }}>
-            <span>36 EXP</span><span className="h-px flex-1" style={{ background: theme.line }} />
-            <span>THE ROLL</span>
-          </div>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-6 sm:gap-3">
-            {frames.map((p, i) => (
-              <Reveal key={p.id} delay={(i % 6) * 40}>
-                <div className="space-y-1.5">
-                  <Photo photo={p} treatment={ctx.treatment} aspect="aspect-[4/5] w-full" />
-                  <FrameMeta meta={p} index={i + 2} theme={theme} />
-                </div>
-              </Reveal>
-            ))}
-          </div>
+    {allocation.pair.length ? <section data-experience-chapter className="grid gap-5 px-5 py-16 sm:grid-cols-2 sm:px-10">{allocation.pair.map((photo, index) => <div key={photo.id} className={index ? "sm:mt-16" : ""}><Photo photo={photo} treatment="grain" aspect={photo.orientation === "landscape" ? "aspect-[3/2] w-full" : "aspect-[4/5] w-full"} footprint="compact" /><p className="mt-2 font-mono text-[8px] uppercase tracking-widest2 opacity-45">{index ? ctx.memories.movie || "second exposure" : ctx.memories.place || "paired exposure"}</p></div>)}</section> : null}
 
-          {bleed[0] && (
-            <Reveal className="mt-14">
-              <Photo photo={bleed[0]} treatment={ctx.treatment} aspect="aspect-[4/5] w-full sm:aspect-[16/9]" className="w-full" />
-              <FrameMeta meta={bleed[0]} index={frames.length + 3} theme={theme} hand />
-            </Reveal>
-          )}
+    {allocation.reveal ? <LoupeChapter photo={allocation.reveal} ctx={ctx} /> : null}
 
-          {strips.length > 0 && (
-            <div className="mt-12">
-              <div className="flex gap-2 overflow-x-auto pb-4">
-                {strips.map((p, i) => (
-                  <div key={p.id} className="w-32 shrink-0 sm:w-44">
-                    <Photo photo={p} treatment={ctx.treatment} aspect="aspect-[3/2] w-full" />
-                    <FrameMeta meta={p} index={i + frames.length + 4} theme={theme} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </section>
-      )}
+    {allocation.secondaryPair.length ? <section data-experience-chapter className="mx-auto max-w-3xl px-6 py-16"><p className="mb-6 font-mono text-[9px] uppercase tracking-[.34em] opacity-50">vertical strip · advance</p><AutoCarousel items={allocation.secondaryPair} getKey={(photo) => photo.id} kind="vertical" visible={1} autoMs={5200} label="Vertical film strip" viewportClassName="mx-auto max-w-md" renderItem={(photo, index) => <div className="border-x-[12px] border-black bg-black p-2"><Photo photo={photo} treatment={index === 0 ? "bw" : "grain"} aspect="aspect-[4/5] w-full" footprint="compact" /></div>} /></section> : null}
 
-      {/* ── Quiet note between the sheets ── */}
-      <section className="px-6 py-24 sm:px-12">
-        <Reveal className="mx-auto max-w-xl">
-          <p className="font-mono text-[10px] uppercase tracking-widest2" style={{ color: theme.muted }}>
-            SOME FRAMES WORTH KEEPING
-          </p>
-          {memories.memory ? (
-            <p className="mt-6 font-display text-2xl font-light italic leading-snug sm:text-3xl">
-              {memories.memory}
-            </p>
-          ) : (
-            <p className="mt-6 font-mono text-[11px] uppercase tracking-widest opacity-50">
-              Add the story behind this photo
-            </p>
-          )}
-        </Reveal>
-      </section>
+    <section data-experience-chapter className="grid gap-8 bg-[#eadfd2] px-6 py-16 text-[#1d1713] md:grid-cols-2 md:items-center md:px-12">{allocation.memory ? <Photo photo={allocation.memory} treatment="grain" aspect={allocation.memory.orientation === "landscape" ? "aspect-[3/2] w-full" : "aspect-[4/5] w-full"} footprint="compact" /> : null}<div><p className="font-mono text-[9px] uppercase tracking-widest2 opacity-45">one memory · do not crop</p><p className="mt-6 font-display text-2xl italic leading-relaxed sm:text-4xl">{ctx.memories.memory || ctx.memories.alwaysSays || "The frame that never left us."}</p></div></section>
 
-      <DistributedStory ctx={ctx} />
-      <Finale ctx={ctx} />
-    </div>
-  );
+    {finalSheet.length ? <section data-experience-chapter className="px-5 py-16 sm:px-10"><p className="mb-7 font-mono text-[9px] uppercase tracking-[.36em] opacity-50">final contact sheet · {ctx.photos.length >= 21 ? "archive chapter" : "selected proofs"}</p><div className={`grid gap-2 ${ctx.photos.length >= 21 ? "grid-cols-3 sm:grid-cols-6" : "grid-cols-1 sm:grid-cols-3"}`}>{finalSheet.map((photo, index) => <div key={photo.id}><Photo photo={photo} treatment={index < 2 ? "bw" : "grain"} aspect="aspect-[4/5] w-full" footprint="compact" showCaption={false} /><span className="mt-1 block font-mono text-[7px] tracking-widest opacity-40">{String(index + 70).padStart(3, "0")}</span></div>)}</div></section> : null}
+
+    <section data-experience-chapter className="bg-[#eadfd2] px-6 py-16 text-center text-[#1d1713]"><p className="mx-auto max-w-3xl font-hand text-[clamp(2.25rem,7vw,5rem)] leading-tight">{ctx.memories.message || `Happy birthday, ${ctx.name}. Every version of you was worth keeping.`}</p></section>
+    <footer className="grid min-h-[42svh] place-items-center px-6 py-14 text-center"><div><p className="font-mono text-[9px] uppercase tracking-[.42em] opacity-50">end of roll</p><h2 className="mt-6 font-hand text-[clamp(3rem,10vw,7rem)] leading-[.82]">{ctx.memories.ending || "NOT THE END OF THE STORY."}</h2></div></footer>
+  </div>;
 }
 
-function FrameMeta({
-  meta,
-  index,
-  theme,
-  hand,
-}: {
-  meta: RenderCtx["photos"][number];
-  index: number;
-  theme: RenderCtx["theme"];
-  hand?: boolean;
-}) {
-  return (
-    <div className="flex items-baseline justify-between font-mono text-[9px] uppercase tracking-widest" style={{ color: theme.muted }}>
-      <span className={cn(hand && "font-hand text-base normal-case")}>
-        {hand && meta.caption ? meta.caption : `FRAME ${String(index).padStart(3, "0")}`}
-      </span>
-      <span className="opacity-70">
-        {meta.location || meta.dateTaken || (meta.orientation === "portrait" ? "80mm" : "35mm")}
-      </span>
-    </div>
-  );
-}
+function Meta({ label, value }: { label: string; value: string }) { return <div><dt className="opacity-45">{label}</dt><dd className="mt-1 normal-case tracking-normal">{value}</dd></div>; }
 
+function LoupeChapter({ photo, ctx }: { photo: PhotoAsset; ctx: RenderCtx }) {
+  const [open, setOpen] = useState(false);
+  return <section data-experience-chapter className="grid gap-8 bg-[#eadfd2] px-6 py-16 text-[#1d1713] md:grid-cols-[minmax(0,1fr)_minmax(15rem,24rem)] md:items-center md:px-12"><button type="button" onClick={() => setOpen((value) => !value)} className="group relative mx-auto block w-full max-w-2xl cursor-crosshair text-left" aria-expanded={open}><Photo photo={photo} treatment="grain" aspect={photo.orientation === "landscape" ? "aspect-[3/2] w-full" : "aspect-[4/5] w-full"} fit="contain" /><span className={`pointer-events-none absolute left-1/2 top-1/2 grid h-36 w-36 -translate-x-1/2 -translate-y-1/2 place-items-end overflow-hidden rounded-full border-4 border-white bg-black/70 p-3 text-center font-mono text-[8px] uppercase tracking-widest text-white shadow-2xl transition-opacity ${open ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`} style={{ backgroundImage: `url(${photo.previewUrl})`, backgroundPosition: `${(photo.focalPoint?.x ?? .5) * 100}% ${(photo.focalPoint?.y ?? .5) * 100}%`, backgroundSize: "230%" }}>{photo.caption || photo.location || "inspect"}</span></button><div><p className="font-mono text-[9px] uppercase tracking-widest2 opacity-45">photographer&apos;s loupe · tap to inspect</p><p className="mt-6 font-hand text-3xl leading-snug">{ctx.memories.insideJoke || ctx.memories.obsession || "There is always more in the detail."}</p></div></section>;
+}

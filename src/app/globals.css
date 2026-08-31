@@ -131,9 +131,56 @@ input[type="number"] {
   --card-gap: clamp(0.875rem, 3vw, 2.5rem);
   --display-mobile: clamp(4.5rem, 20vw, 8.25rem);
   --reading-measure: min(100%, 42rem);
+  --z-background: 0;
+  --z-decorative: 10;
+  --z-photo: 20;
+  --z-foreground: 30;
+  --z-type: 40;
+  --z-interaction: 50;
+  --z-navigation: 80;
+  --z-modal: 100;
+  --z-preview: 120;
   max-width: 100%;
   overflow-x: clip;
 }
+.birthday-template [data-experience-chapter] {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 640px;
+}
+.birthday-template .tp-photo-normal {
+  max-width: min(92vw, 72rem);
+  max-height: 68svh;
+}
+.birthday-template .tp-photo-compact {
+  max-width: min(82vw, 42rem);
+  max-height: 54svh;
+}
+.birthday-template .tp-photo-cinematic {
+  max-width: min(92vw, 82rem);
+  max-height: 68svh;
+}
+@media (min-width: 640px) {
+  .birthday-template .tp-photo-normal { max-width: min(82vw, 72rem); max-height: 72vh; }
+  .birthday-template .tp-photo-compact { max-width: min(62vw, 42rem); max-height: 60vh; }
+  .birthday-template .tp-photo-cinematic { max-width: min(82vw, 82rem); max-height: 72vh; }
+}
+.tp-auto-carousel { position: relative; }
+.tp-carousel-viewport { cursor: grab; user-select: none; }
+.tp-carousel-viewport:active { cursor: grabbing; }
+.tp-carousel-control {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border: 1px solid currentColor;
+  background: transparent;
+  font: 500 .72rem/1 var(--tp-mono, monospace);
+  transition: background .2s ease, color .2s ease;
+}
+.tp-carousel-control:hover,
+.tp-carousel-control:focus-visible { background: currentColor; color: var(--tp-bg, #f4f0e7); }
+.tp-auto-carousel * { scrollbar-width: none; }
+.tp-auto-carousel *::-webkit-scrollbar { display: none; }
 
 @media (max-width: 639px) {
   .birthday-template {
@@ -149,13 +196,7 @@ input[type="number"] {
 }
 .tp-frame > img,
 .tp-frame > video {
-  transition: transform 520ms cubic-bezier(.16,1,.3,1), filter 320ms ease;
-}
-@media (hover: hover) {
-  .tp-frame:hover > img,
-  .tp-frame:hover > video {
-    transform: scale(1.025);
-  }
+  transition: filter 320ms ease;
 }
 .tp-frame .tp-cap {
   position: absolute;
@@ -212,4 +253,88 @@ input[type="number"] {
 /* Contact-sheet frame flash + dev mask corners */
 .tp-dev-borrow {
   background: rgba(255, 255, 255, 0.02);
+}
+
+/* Experience-native atmospheric primitives. They are structural materials,
+   not global decorative backgrounds, and always collapse under reduced motion. */
+.tp-night-trail {
+  left: calc(var(--trail-x, -200px) - 5rem);
+  top: calc(var(--trail-y, -200px) - 5rem);
+  background: radial-gradient(circle, rgba(255,255,255,.22), transparent 65%);
+  filter: blur(12px);
+  mix-blend-mode: screen;
+}
+.tp-window-light {
+  background: linear-gradient(90deg, transparent, rgba(255,248,214,.44), transparent);
+  filter: blur(18px);
+  mix-blend-mode: screen;
+}
+.tp-dream-aurora {
+  background:
+    radial-gradient(ellipse at 18% 30%, var(--tp-accent), transparent 38%),
+    radial-gradient(ellipse at 82% 62%, var(--tp-accent2), transparent 42%);
+  opacity: .24;
+  filter: blur(54px);
+}
+.tp-portal::after {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  pointer-events: none;
+  background: conic-gradient(from 30deg, transparent, rgba(255,255,255,.3), transparent 35%);
+  animation: tp-portal-refract 8s linear infinite;
+  mix-blend-mode: overlay;
+}
+@keyframes tp-portal-refract { to { transform: rotate(1turn); } }
+
+.tp-develop-photo {
+  animation: tp-develop 2.8s cubic-bezier(.16,1,.3,1) both;
+}
+@keyframes tp-develop {
+  0% { filter: grayscale(1) contrast(.15) brightness(1.45); opacity: .18; transform: rotateX(8deg) rotateZ(-1deg); }
+  46% { filter: grayscale(1) contrast(.72) brightness(1.12); opacity: .72; }
+  100% { filter: grayscale(0) contrast(1) brightness(1); opacity: 1; transform: rotateX(0) rotateZ(0); }
+}
+.tp-projector-beam {
+  background: linear-gradient(90deg, transparent, rgba(255,245,215,.14), transparent);
+  filter: blur(20px);
+  transform: perspective(600px) rotateX(16deg);
+  transform-origin: top;
+}
+.tp-editorial-fold {
+  transition: transform .7s cubic-bezier(.16,1,.3,1), box-shadow .7s ease;
+  transform: rotateY(0deg);
+}
+@media (hover: hover) {
+  .tp-editorial-fold:hover {
+    transform: rotateY(-3deg) translateZ(20px);
+    box-shadow: 24px 30px 70px rgba(0,0,0,.12);
+  }
+}
+.tp-torn-edge {
+  clip-path: polygon(45% 0, 60% 5%, 38% 11%, 58% 18%, 42% 25%, 63% 32%, 35% 39%, 61% 47%, 41% 55%, 64% 63%, 38% 71%, 59% 80%, 43% 89%, 55% 100%, 0 100%, 0 0);
+}
+
+/* Selector previews communicate interaction architecture in miniature. */
+.tp-mini-preview > * { transition: transform 1.2s cubic-bezier(.16,1,.3,1), filter .45s ease, opacity .45s ease; }
+@media (hover: hover) {
+  .group:hover .tp-mini-contact-sheet > * { transform: translateX(-3%) skewY(-.5deg); filter: contrast(1.18); }
+  .group:hover .tp-mini-cut-and-paste > * { transform: rotate(-1.5deg) translateY(-3%); }
+  .group:hover .tp-mini-cover-star > * { transform: perspective(700px) rotateY(-7deg); transform-origin: left; }
+  .group:hover .tp-mini-cinema > * { transform: scale(1.12); filter: contrast(1.12); }
+  .group:hover .tp-mini-internet-person > * { transform: perspective(700px) translateZ(24px) rotateX(2deg); }
+  .group:hover .tp-mini-after-dark > * { filter: brightness(1.8) contrast(1.25); transition-duration: .12s; }
+  .group:hover .tp-mini-sunday-morning > * { filter: brightness(1.08) sepia(.1); transform: translateY(-1%); }
+  .group:hover .tp-mini-polaroid-wall > * { transform: translate3d(-3%, 2%, 0) rotate(.4deg); }
+  .group:hover .tp-mini-archive > * { transform: perspective(700px) translateY(5%) translateZ(20px); }
+  .group:hover .tp-mini-dreamscape > * { transform: scale(1.06); filter: blur(.3px) saturate(1.18); }
+  .group:hover .tp-mini-poster-city > * { transform: perspective(700px) rotateY(5deg) translateX(-2%); }
+  .group:hover .tp-mini-yearbook > * { transform: perspective(700px) rotateY(-8deg); transform-origin: left; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tp-night-trail { display: none; }
+  .tp-portal::after { animation: none; }
+  .tp-develop-photo { animation: none; }
+  .tp-editorial-fold:hover { transform: none; }
 }

@@ -1,4 +1,5 @@
 import type { RenderCtx } from "./types";
+import type { MemoryKey } from "@/lib/types";
 
 export type ContentModule = "caption" | "pullquote" | "note" | "label" | "secret" | "intertitle" | "window" | "archive";
 
@@ -15,6 +16,46 @@ const RAW: Array<[keyof RenderCtx["memories"], string]> = [
   ["insideJoke", "INSIDE JOKE"], ["alwaysSays", "ALWAYS SAYS"], ["obsession", "CURRENT OBSESSION"],
   ["knownFor", "KNOWN FOR"], ["memory", "ONE MEMORY"],
 ];
+
+const KEY_TO_MEMORY: Record<MemoryKey, keyof RenderCtx["memories"]> = {
+  "one-sentence": "oneSentence",
+  "three-words": "threeWords",
+  "things-they-love": "thingsTheyLove",
+  "favorite-place": "place",
+  "favorite-song": "song",
+  "favorite-movie": "movie",
+  "inside-joke": "insideJoke",
+  "always-says": "alwaysSays",
+  "current-obsession": "obsession",
+  "known-for": "knownFor",
+  "unforgettable-memory": "memory",
+  "birthday-message": "message",
+  "ending-line": "ending",
+};
+
+const LABELS: Record<MemoryKey, string> = {
+  "one-sentence": "IN ONE LINE",
+  "three-words": "THREE WORDS",
+  "things-they-love": "THEY LOVE",
+  "favorite-place": "FAVOURITE PLACE",
+  "favorite-song": "CURRENT ROTATION",
+  "favorite-movie": "FAVOURITE FILM",
+  "inside-joke": "YOU HAD TO BE THERE",
+  "always-says": "ALWAYS SAYS",
+  "current-obsession": "CURRENT OBSESSION",
+  "known-for": "KNOWN FOR",
+  "unforgettable-memory": "ONE MEMORY",
+  "birthday-message": "A LETTER",
+  "ending-line": "LAST WORD",
+};
+
+/** Low-level content lookup. Templates still own placement and composition. */
+export function storyFor(ctx: RenderCtx, order: readonly MemoryKey[]) {
+  return order.flatMap((key) => {
+    const value = ctx.memories[KEY_TO_MEMORY[key]];
+    return value ? [{ key, label: LABELS[key], value }] : [];
+  });
+}
 
 const MAP: Record<RenderCtx["id"], ContentModule[]> = {
   "contact-sheet": ["caption", "label", "note", "caption", "label", "caption", "secret", "note", "label", "caption", "pullquote"],

@@ -185,6 +185,25 @@ export function milestoneTitleFor(
   if (!milestone || !templateId) return undefined;
   return (
     MILESTONE_TEMPLATE_TITLES[milestone.age][templateId] ??
-    FALLBACK_TITLES[milestone.age]
+    templateMilestoneFallback(milestone, templateId)
   );
+}
+
+function templateMilestoneFallback(milestone: MilestoneDefinition, templateId: TemplateId): string {
+  const age = milestone.age;
+  const titles: Record<TemplateId, string> = {
+    "contact-sheet": `ROLL ${String(age).padStart(3, "0")}`,
+    "cut-and-paste": `${age} PIECES OF EVIDENCE`,
+    "cover-star": `ISSUE ${String(age).padStart(3, "0")}`,
+    cinema: `${age} YEARS IN THE MAKING`,
+    "internet-person": `VERSION ${age}.0`,
+    archive: `${age}-YEAR COLLECTION`,
+    "after-dark": `${age} AFTER DARK`,
+    "sunday-morning": `${age} MORNINGS AROUND THE SUN`,
+    "polaroid-wall": `${age} FRAMES`,
+    dreamscape: `CHAPTER ${milestone.numeral}`,
+    "poster-city": `${age} / THE CITY EDITION`,
+    yearbook: `CLASS OF ${age}`,
+  };
+  return titles[templateId] ?? FALLBACK_TITLES[age];
 }

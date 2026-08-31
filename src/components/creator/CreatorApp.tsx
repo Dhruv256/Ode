@@ -20,6 +20,7 @@ import PreviewShell from "@/components/creator/steps/PreviewShell";
 export interface StepNav {
   onNext: () => void;
   onBack: () => void;
+  goTo: (step: CreatorStepId) => void;
 }
 
 const STEP_LABELS: Record<CreatorStepId, string> = {
@@ -71,6 +72,7 @@ export default function CreatorApp() {
       onNext: () =>
         setStep(CREATOR_STEPS[Math.min(stepIndex + 1, CREATOR_STEPS.length - 1)]),
       onBack: () => setStep(CREATOR_STEPS[Math.max(stepIndex - 1, 0)]),
+      goTo: (target) => setStep(target),
     }),
     [stepIndex]
   );

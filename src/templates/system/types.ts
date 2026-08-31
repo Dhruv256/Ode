@@ -26,6 +26,12 @@ export type PhotoRole =
   | "floating"
   | "polaroid"
   | "annotation"
+  | "supporting"
+  | "sequence"
+  | "group"
+  | "detail"
+  | "background"
+  | "hidden-interaction"
   | "finale";
 
 /** Template-level image treatment. Applied via CSS, never destroys source. */
@@ -105,6 +111,7 @@ export interface RenderCtx {
   memories: MemBundle;
   edit: boolean;
   device: "desktop" | "mobile";
+  performanceTier: "low" | "medium" | "high";
   onEdit?: (key: string, value: string) => void;
 }
 

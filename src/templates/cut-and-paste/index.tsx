@@ -1,164 +1,32 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import type { PhotoAsset } from "@/lib/types";
 import type { RenderCtx } from "../system/types";
 import { Photo } from "../system/photo";
-import { Reveal } from "../system/Reveal";
-import { Finale } from "../system/finale";
-import { DistributedStory } from "../system/DistributedStory";
-import { byRole } from "../system/roles";
-import { cn } from "@/lib/utils";
+import { AutoCarousel, TextCarousel } from "../system/AutoCarousel";
+import { allocatePhotoStory } from "../system/roles";
 
-/**
- * 02 · CUT & PASTE — art-school scrapbook / indie culture publication.
- * Layered physical depth: torn edges, tape, overlapping photos, stickers,
- * handwritten marks. The opening assembles live (empty → one photo → tape →
- * second overlaps). Milestones stamp the structure; playful copy only when
- * the vibes invite it.
- */
 export default function CutAndPaste({ ctx }: { ctx: RenderCtx }) {
-  const { theme, photos, memories, name, age } = ctx;
-  const cards = byRole(ctx.roles, "card");
-  const flips = byRole(ctx.roles, "floating");
-  const strips = byRole(ctx.roles, "strip");
-
-  const playful = ctx.project.vibes.vibes.some((v) =>
-    ["chaos-energy", "main-character", "internet-native"].includes(v)
-  );
-  const headline = `${age ?? 21} pieces of evidence that ${name.toUpperCase()} is ${playful ? "iconic" : "worth keeping"}`;
-
-  const tape = (deg = -2) => (
-    <span
-      aria-hidden
-      className="absolute -top-2 left-1/2 z-[4] h-5 w-16 -translate-x-1/2 rotate-[-3deg]"
-      style={{ background: "rgba(255,244,214,0.55)", boxShadow: "0 1px 2px rgba(0,0,0,0.12)", opacity: 0.85 }}
-    />
-  );
-
-  return (
-    <div className="tp-paper relative min-h-screen overflow-hidden px-4 py-10 sm:px-8" style={{ background: theme.bg }}>
-      {/* ── First photo arrives, tape appears ── */}
-      <section className="relative mt-6">
-        <Reveal>
-          <p className="font-mono text-[10px] uppercase tracking-widest2" style={{ color: theme.muted }}>
-            having gathered the evidence —
-          </p>
-          <h1 className="mt-4 max-w-4xl font-display text-4xl font-black uppercase leading-[0.92] tracking-tightest sm:text-6xl lg:text-7xl" style={{ fontFamily: ctx.fonts.display }}>
-            {name}
-            <span className="block text-6xl text-[var(--tp-accent)] sm:text-8xl lg:text-9xl">{age ?? 21}</span>
-          </h1>
-        </Reveal>
-
-        {photos[0] && (
-          <Reveal className="relative mt-10 w-64 sm:w-80">
-            {tape(-2)}
-            <Photo photo={photos[0]} treatment={ctx.treatment} aspect="aspect-[4/5] w-full" className="rotate-[-1.2deg] shadow-[8px_10px_24px_rgba(0,0,0,0.18)]" />
-            <Note meta={photos[0]} theme={theme} />
-          </Reveal>
-        )}
-      </section>
-{/* ── Sequence: second photo overlaps the type ── */}
-      <section className="relative mt-14 grid gap-10 sm:grid-cols-12">
-        <Reveal className="relative sm:col-span-7">
-          {photos[1] ? (
-            <>
-              {tape(1)}
-              <Photo photo={photos[1]} treatment={ctx.treatment} aspect="aspect-[4/3] w-full" className="rotate-[1.3deg] shadow-[8px_10px_24px_rgba(0,0,0,0.18)]" />
-              <Note meta={photos[1]} theme={theme} overlap />
-            </>
-          ) : (
-            <div className="flex aspect-[4/3] items-center justify-center border border-dashed px-6 text-center font-hand text-xl opacity-60" style={{ borderColor: theme.line }}>
-              the next memory tapes here
-            </div>
-          )}
-        </Reveal>
-        <div className="flex flex-col justify-end gap-6 sm:col-span-5">
-          <p className="text-sm font-sans" style={{ color: theme.muted }}>
-            The overlap is the point. Nothing sits straight.
-          </p>
-          <div className="-rotate-1 border border-[#00000018] bg-[color:var(--tp-panel)] p-5 font-hand text-2xl leading-snug">
-            {memories.alwaysSays || memories.insideJoke || "the caption tapes over the corner"}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Dense wall of memories ── */}
-      {cards.length > 0 && (
-        <section className="relative mt-20">
-          <p className="mb-6 font-mono text-[10px] uppercase tracking-widest2" style={{ color: theme.muted }}>
-            {memories.threeWords || "the wall"}
-          </p>
-          <div className="columns-2 gap-4 sm:columns-3 lg:columns-4">
-            {cards.map((p, i) => (
-              <div key={p.id} className="mb-4 break-inside-avoid">
-                <div className={cn("relative", rotations[i % rotations.length])}>
-                  {tape(i % 2 === 0 ? -2 : 2)}
-                  <Photo photo={p} treatment={ctx.treatment} aspect="aspect-square w-full" className="shadow-[6px_8px_20px_rgba(0,0,0,0.15)]" />
-                  <Note meta={p} theme={theme} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ── Static of floating photos ── */}
-      {flips.length > 0 && (
-        <section className="relative mt-16 flex flex-wrap items-end gap-6">
-          {flips.map((p, i) => (
-            <Reveal key={p.id} delay={i * 60}>
-              <Photo
-                photo={p}
-                treatment={ctx.treatment}
-                aspect="aspect-[4/5] w-40"
-                className={i % 2 ? "rotate-[1.5deg]" : "rotate-[-1.5deg]"}
-              />
-            </Reveal>
-          ))}
-        </section>
-      )}
-
-      {/* ── Milestone stamp ── */}
-      <div className="relative mt-24 text-center">
-        <span
-          className="inline-block -rotate-6 border-4 border-double px-6 py-3 font-hand text-3xl uppercase"
-          style={{ borderColor: theme.accent, color: theme.accent }}
-        >
-          {ctx.milestone?.label ?? age} · {age}
-        </span>
-      </div>
-
-      {/* ── Finale strips everything away except the favorite photo ── */}
-      <DistributedStory ctx={ctx} />
-      <Finale ctx={ctx} />
-    </div>
-  );
+  const allocation = allocatePhotoStory(ctx.photos, ctx.hero?.id);
+  const stack = [...allocation.carousel, ...allocation.secondaryPair, ...allocation.montage];
+  const phrases = [ctx.memories.threeWords, ctx.memories.alwaysSays, ctx.memories.thingsTheyLove].filter(Boolean) as string[];
+  return <div className="tp-paper relative overflow-hidden px-4 text-[var(--tp-text)] sm:px-8" style={{ background: ctx.theme.bg }}>
+    <section data-experience-chapter className="grid min-h-[38svh] place-items-center py-16 text-center"><div><p className="font-mono text-[9px] uppercase tracking-[.42em] opacity-45">empty paper · evidence pending</p><h1 className="mt-7 font-display text-[clamp(3.8rem,14vw,10rem)] font-black uppercase leading-[.76]" style={{ fontFamily: ctx.fonts.display }}>{ctx.name}<span className="block text-[var(--tp-accent)]">{ctx.age ?? 21}</span></h1></div></section>
+    {allocation.hero ? <TapedPhoto photo={allocation.hero} treatment={ctx.treatment} className="mx-auto w-full max-w-2xl -rotate-1" caption={allocation.hero.caption || "first piece of evidence"} /> : null}
+    <section data-experience-chapter className="grid min-h-[36svh] place-items-center px-4 py-14"><TextCarousel items={phrases} kind="stack" className="w-full max-w-3xl text-center font-hand text-[clamp(2.4rem,9vw,6.5rem)] leading-[.86]" label="Handwritten phrases" /></section>
+    {allocation.reveal ? <TearReveal photo={allocation.reveal} ctx={ctx} /> : null}
+    {allocation.pair.length ? <section data-experience-chapter className="mx-auto grid max-w-5xl gap-8 py-16 sm:grid-cols-2">{allocation.pair.map((photo, index) => <TapedPhoto key={photo.id} photo={photo} treatment={ctx.treatment} className={index ? "rotate-2 sm:mt-16" : "-rotate-2"} caption={photo.caption || (index ? "the other half" : "kept together")} />)}</section> : null}
+    <section data-experience-chapter className="mx-auto grid max-w-5xl gap-10 py-16 md:grid-cols-2 md:items-center">{allocation.feature ? <TapedPhoto photo={allocation.feature} treatment={ctx.treatment} className="rotate-1" caption={allocation.feature.caption || "current obsession"} /> : <div />}<div className="relative -rotate-2 border-2 border-dashed p-7 shadow-[10px_12px_0_var(--tp-text)]" style={{ background: ctx.theme.accent, color: ctx.theme.bg, borderColor: ctx.theme.text }}><span className="absolute -right-3 -top-5 rotate-12 rounded-full border-2 px-4 py-2 font-mono text-[9px] uppercase tracking-widest" style={{ background: ctx.theme.panel, color: ctx.theme.text }}>obsession sticker</span><p className="font-hand text-[clamp(2.3rem,7vw,5rem)] leading-none">{ctx.memories.obsession || ctx.memories.song || "currently on repeat"}</p></div></section>
+    <section data-experience-chapter className="mx-auto max-w-3xl py-14"><PeelNote label="inside joke · peel corner" value={ctx.memories.insideJoke || "The joke still makes no sense to anyone else."} theme={ctx.theme} /></section>
+    <section data-experience-chapter className="mx-auto grid max-w-5xl gap-10 py-16 md:grid-cols-2 md:items-center">{allocation.memory ? <TapedPhoto photo={allocation.memory} treatment={ctx.treatment} className="-rotate-1" caption={allocation.memory.caption || "one memory"} /> : null}<div><p className="font-mono text-[9px] uppercase tracking-widest2 opacity-45">do not lose this one</p><p className="mt-6 font-hand text-[clamp(2rem,6vw,4rem)] leading-tight">{ctx.memories.memory || "One memory, folded small enough to keep forever."}</p></div></section>
+    {stack.length ? <section data-experience-chapter className="mx-auto max-w-5xl py-16"><p className="mb-7 font-mono text-[9px] uppercase tracking-[.34em] opacity-45">rotating stack · drag or use arrows</p><AutoCarousel items={stack} getKey={(photo) => photo.id} kind="stack" visible={ctx.device === "mobile" ? 1 : stack.length > 1 ? 2 : 1} label="Rotating scrapbook stack" renderItem={(photo, index) => <TapedPhoto photo={photo} treatment={ctx.treatment} className={index % 2 ? "rotate-1" : "-rotate-1"} caption={photo.caption || `scrap ${String(index + 1).padStart(2, "0")}`} />} /></section> : null}
+    <section data-experience-chapter className="mx-auto grid max-w-4xl gap-8 py-16 md:grid-cols-[minmax(0,.75fr)_minmax(0,1fr)] md:items-center">{allocation.finale ? <TapedPhoto photo={allocation.finale} treatment={ctx.treatment} className="-rotate-3" caption={allocation.finale.caption || "under the letter"} /> : null}<div className="rotate-1 border p-7 shadow-[14px_16px_0_var(--tp-text)] sm:p-11" style={{ background: ctx.theme.panel, borderColor: ctx.theme.line }}><p className="font-mono text-[9px] uppercase tracking-widest2 opacity-45">hidden letter</p><p className="mt-7 font-hand text-[clamp(2.2rem,6vw,4.5rem)] leading-tight">{ctx.memories.message || `Happy birthday, ${ctx.name}. You make the mess worth keeping.`}</p></div></section>
+    <footer className="grid min-h-[38svh] place-items-center py-14 text-center"><div><p className="font-mono text-[9px] uppercase tracking-[.4em] opacity-40">nothing left to paste</p><h2 className="mt-6 font-display text-[clamp(3.2rem,11vw,8rem)] font-black uppercase leading-[.8]" style={{ fontFamily: ctx.fonts.display }}>{ctx.memories.ending || "DON’T EVER SIT STRAIGHT."}</h2></div></footer>
+  </div>;
 }
 
-const rotations = [
-  "rotate-[-1.2deg]",
-  "rotate-[1.4deg]",
-  "rotate-[-0.8deg]",
-  "rotate-[0.6deg]",
-  "rotate-[1.1deg]",
-  "rotate-[-1.6deg]",
-];
-
-function Note({
-  meta,
-  overlap,
-  theme,
-}: {
-  meta: RenderCtx["photos"][number];
-  theme: RenderCtx["theme"];
-  overlap?: boolean;
-}) {
-  return (
-    <span
-      className={cn("block px-1 pt-1.5 font-hand text-xl leading-none", overlap && "mt-1 -rotate-2")}
-      style={{ color: theme.muted }}
-    >
-      {meta.caption || "the tape says it all"}
-    </span>
-  );
-}
+function Tape() { return <span aria-hidden className="absolute -top-2 left-1/2 z-[4] h-5 w-20 -translate-x-1/2 -rotate-2 bg-[#fff0c4aa] shadow-sm" />; }
+function TapedPhoto({ photo, treatment, className = "", caption }: { photo: PhotoAsset; treatment: RenderCtx["treatment"]; className?: string; caption: string }) { return <figure className={`relative ${className}`}><Tape /><Photo photo={photo} treatment={treatment} aspect={photo.orientation === "landscape" ? "aspect-[3/2] w-full" : "aspect-[4/5] w-full"} footprint="compact" showCaption={false} className="shadow-[8px_10px_24px_rgba(0,0,0,.18)]" /><figcaption className="mt-2 px-1 font-hand text-xl opacity-65">{caption}</figcaption></figure>; }
+function TearReveal({ photo, ctx }: { photo: PhotoAsset; ctx: RenderCtx }) { const [open, setOpen] = useState(false); return <section data-experience-chapter className="mx-auto max-w-5xl border-y-2 border-dashed py-16" style={{ borderColor: ctx.theme.text }}><button type="button" onClick={() => setOpen((value) => !value)} className="relative block min-h-[24rem] w-full overflow-hidden text-left" aria-expanded={open}><div className={`absolute inset-0 z-10 grid origin-left place-items-center border-r-2 border-dashed p-8 transition-transform duration-700 ${open ? "-translate-x-[94%] -rotate-2" : "translate-x-0"}`} style={{ background: ctx.theme.bg, borderColor: ctx.theme.text }}><div><p className="font-display text-[clamp(2.8rem,9vw,6.5rem)] font-black uppercase leading-[.83]" style={{ fontFamily: ctx.fonts.display }}>tear here</p><p className="mt-4 font-hand text-2xl">to find what the cover missed →</p></div></div><div className="grid min-h-[24rem] gap-8 p-6 md:grid-cols-2 md:items-center"><Photo photo={photo} treatment={ctx.treatment} aspect={photo.orientation === "landscape" ? "aspect-[3/2] w-full" : "aspect-[4/5] w-full"} footprint="compact" /><p className="font-hand text-3xl">{ctx.memories.knownFor || photo.caption || "Evidence: impossible to overlook."}</p></div></button></section>; }
+function PeelNote({ label, value, theme }: { label: string; value: string; theme: RenderCtx["theme"] }) { const [peeled, setPeeled] = useState(false); return <button type="button" onClick={() => setPeeled((value) => !value)} className="relative min-h-56 w-full p-7 text-left" style={{ background: theme.panel, perspective: 900 }} aria-expanded={peeled}><div className="absolute inset-0 origin-top-left border p-7 transition-transform duration-700" style={{ background: theme.accent, color: theme.bg, borderColor: theme.text, transform: peeled ? "rotateY(-112deg)" : "rotateY(0deg)", transformStyle: "preserve-3d" }}><p className="font-mono text-[9px] uppercase tracking-widest2">{label}</p><span className="absolute bottom-4 right-4 font-hand text-xl">peel ↗</span></div><p className="font-hand text-3xl leading-snug">{value}</p></button>; }

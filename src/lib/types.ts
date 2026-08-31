@@ -270,6 +270,13 @@ export interface SoundtrackAsset {
   previewUrl: string;
   mimeType: string;
   needsRelink?: boolean;
+  /** Lightweight playback choices; kept intentionally simpler than a DAW. */
+  profileId?: string;
+  volume?: number;
+  startAt?: number;
+  fadeIn?: number;
+  fadeOut?: number;
+  loop?: boolean;
 }
 
 /* ── Publishing (future phase — schema reserved now) ────────────────────── */
