@@ -7,6 +7,8 @@ const isCreatorRoute = createRouteMatcher([
   "/project(.*)",
   "/api/media/sign(.*)",
   "/api/projects(.*)",
+  "/api/websites(.*)",
+  "/api/hampers(.*)",
 ]);
 
 const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
@@ -17,6 +19,13 @@ const clerkIsConfigured =
 
 const clerkProxy = clerkMiddleware(async (auth, request) => {
   if (isCreatorRoute(request)) {
+    // API callers need JSON, not Clerk's not-found rewrite, which can match
+    // the legacy public birthday /[slug] route in this application.
+    if (request.nextUrl.pathname.startsWith("/api/")) {
+      const { userId } = await auth();
+      if (!userId) return NextResponse.json({ error: "Please sign in to your studio." }, { status: 401 });
+      return;
+    }
     await auth.protect();
   }
 });

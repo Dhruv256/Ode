@@ -1,157 +1,60 @@
 "use client";
-
 import Link from "next/link";
-import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
-import OdeLogo from "@/components/brand/OdeLogo";
+import { StudioShell } from "./StudioShell";
+import { api, shareLink } from "@/features/hamper/client";
+import { ItemIcon } from "@/features/hamper/components/ItemIcon";
+import { Dialog } from "@/features/hamper/components/Dialog";
 import type { BirthdayProject } from "@/lib/types";
-import styles from "./DashboardPage.module.css";
-
-const STORAGE_KEY = "birthday-world/project/v1";
-
-function savedProject(): BirthdayProject | null {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const project = JSON.parse(raw) as BirthdayProject;
-    return project && typeof project === "object" && project.id ? project : null;
-  } catch {
-    return null;
+import type { Hamper } from "@/features/hamper/types";
+import { HAMPER_THEMES } from "@/features/hamper/config";
+import styles from "@/features/hamper/hamper.module.css";
+import { localWebsites, removeLocalWebsite, saveLocalWebsite } from "@/lib/localWebsites";
+type WebsiteRow = { id: string; project: BirthdayProject; local?: boolean; created_at: string; updated_at: string };
+const date = (value: string) => new Date(value).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+export default function DashboardPage({ section = "dashboard", ownerKey = "device" }: { section?: "dashboard" | "websites"; ownerKey?: string }) {
+  const [websites, setWebsites] = useState<WebsiteRow[]>([]), [hampers, setHampers] = useState<Hamper[]>([]), [ready, setReady] = useState(false), [message, setMessage] = useState(""), [deleting, setDeleting] = useState<WebsiteRow | null>(null), [busy, setBusy] = useState(false);
+  async function load() {
+    const local = localWebsites(ownerKey);
+    const rows = new Map<string, WebsiteRow>();
+    Object.values(local).filter(p => p?.id && p.person && p.publishing).forEach(p => rows.set(p.id, { id: p.id, project: p, created_at: p.createdAt, updated_at: p.updatedAt, local: true }));
+    const [sites, packs] = await Promise.allSettled([api<{ websites: WebsiteRow[] }>("/api/websites"), section === "dashboard" ? api<{ hampers: Hamper[] }>("/api/hampers") : Promise.resolve({ hampers: [] })]);
+    if (sites.status === "fulfilled") sites.value.websites.forEach(row => {
+      const cached = rows.get(row.id);
+      rows.set(row.id, cached && cached.updated_at > row.updated_at ? { ...cached, local: false } : row);
+    }); else setMessage(`${sites.reason instanceof Error ? sites.reason.message : "Cloud projects couldn't be loaded."} Local drafts are shown below.`);
+    if (packs.status === "fulfilled") setHampers(packs.value.hampers);
+    setWebsites(Array.from(rows.values()).sort((a, b) => b.updated_at.localeCompare(a.updated_at))); setReady(true);
   }
-}
-
-function projectName(project: BirthdayProject) {
-  return project.person.nickname || project.person.fullName || "Untitled world";
-}
-
-function templateName(template?: string) {
-  return template ? template.replace(/-/g, " ").toUpperCase() : "WORLD IN PROGRESS";
-}
-
-function projectDate(value: string) {
-  return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
-}
-
-function safePhoto(project: BirthdayProject) {
-  const hero = project.photos.find((photo) => photo.isHero) ?? project.photos[0];
-  if (!hero || hero.needsRelink || hero.previewUrl.startsWith("blob:")) return undefined;
-  return hero.previewUrl;
-}
-
-export default function DashboardPage() {
-  const [project, setProject] = useState<BirthdayProject | null>(null);
-  const [ready, setReady] = useState(false);
-  const reduceMotion = useReducedMotion();
-
-  useEffect(() => {
-    setProject(savedProject());
-    setReady(true);
-  }, []);
-
-  const name = project ? projectName(project) : "A new world";
-  const photo = project ? safePhoto(project) : undefined;
-  const isPublished = project?.publishing.status === "published";
-  const publicUrl = project?.publishing.slug && isPublished ? `/${project.publishing.slug}` : undefined;
-  const intro = project
-    ? `The latest material for ${name} is here.`
-    : "There is no active world on this device yet.";
-  const motionProps = reduceMotion ? {} : { initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.34, ease: [0.22, 1, 0.36, 1] } };
-
-  const beginFresh = () => {
-    window.localStorage.removeItem(STORAGE_KEY);
-  };
-
-  return (
-    <main className={styles.dashboard}>
-      <a className={styles.skip} href="#worlds">Skip to your worlds</a>
-      <header className={styles.topbar}>
-        <Link href="/" className={styles.wordmark} aria-label="Ode home">
-          <OdeLogo className={styles.brandMark} size={38} variant="light" />
-          <span>ODE</span>
-        </Link>
-        <nav aria-label="Creator navigation" className={styles.navigation}>
-          <Link href="/dashboard" aria-current="page">STUDIO</Link>
-          <Link href="/create">CREATE</Link>
-          <Link href="/">SITE</Link>
-        </nav>
-        <span className={styles.identity} aria-label="Creator account">YOUR STUDIO</span>
-      </header>
-
-      <div className={styles.shell}>
-        <aside className={styles.rail} aria-label="Studio sections">
-          <p>PRIVATE<br />STUDIO</p>
-          <span>01 / WORLDS</span>
-          <span>02 / RELEASES</span>
-          <span>03 / ACCOUNT</span>
-          <small>LOCAL MODE<br />UNTIL SYNC</small>
-        </aside>
-
-        <section className={styles.content} id="worlds" aria-labelledby="studio-title">
-          <motion.div className={styles.intro} {...motionProps}>
-            <p className={styles.eyebrow}>THE WORKBENCH</p>
-            <h1 id="studio-title">YOUR<br /><em>WORLDS.</em></h1>
-            <p>{intro}</p>
-          </motion.div>
-
-          {!ready ? (
-            <div className={styles.loading} aria-live="polite">OPENING THE STUDIO…</div>
-          ) : project ? (
-            <motion.article className={styles.activeWorld} {...motionProps} transition={{ duration: 0.4, delay: reduceMotion ? 0 : 0.08, ease: [0.22, 1, 0.36, 1] }}>
-              <div className={styles.worldVisual}>
-                {photo ? (
-                  <img src={photo} alt={`Preview of ${name}'s birthday world`} />
-                ) : (
-                  <div className={styles.placeholderVisual} aria-hidden="true">
-                    <span>{project.age ?? "?"}</span>
-                    <i>{name.slice(0, 1).toUpperCase()}</i>
-                    <b>MEMORY<br />MATERIAL</b>
-                  </div>
-                )}
-                <span className={styles.visualLabel}>{templateName(project.templateId)}</span>
-              </div>
-
-              <div className={styles.worldDetails}>
-                <div className={styles.statusline}>
-                  <span className={isPublished ? styles.published : styles.draft}>{isPublished ? "PUBLISHED" : "DRAFT"}</span>
-                  <span>LAST TOUCHED {projectDate(project.updatedAt)}</span>
-                </div>
-                <h2>{name}</h2>
-                <p className={styles.worldSummary}>{project.person.fullName ? `A birthday world for ${project.person.fullName}.` : "Give this world a name, then make it personal."}</p>
-                <dl className={styles.materials}>
-                  <div><dt>PHOTOS</dt><dd>{String(project.photos.length).padStart(2, "0")}</dd></div>
-                  <div><dt>WORDS</dt><dd>{String(project.memories.filter((memory) => memory.answer.trim()).length).padStart(2, "0")}</dd></div>
-                  <div><dt>STYLE</dt><dd>{project.templateId ? "SET" : "OPEN"}</dd></div>
-                </dl>
-                <div className={styles.actions}>
-                  <Link href="/create" className={styles.continue}>CONTINUE MAKING <span aria-hidden="true">→</span></Link>
-                  {publicUrl ? <Link href={publicUrl} className={styles.secondary}>OPEN RECIPIENT VIEW ↗</Link> : <span className={styles.secondaryMuted}>PUBLISH WHEN IT FEELS READY</span>}
-                </div>
-              </div>
-            </motion.article>
-          ) : (
-            <motion.section className={styles.empty} {...motionProps} aria-labelledby="empty-title">
-              <div className={styles.emptyArt} aria-hidden="true"><span>01</span><i>?</i><b>ONE<br />PERSON</b></div>
-              <div>
-                <p className={styles.eyebrow}>NO WORLDS YET</p>
-                <h2 id="empty-title">START WITH<br />THE <em>ONE</em> THEY’LL KEEP.</h2>
-                <p>You only need one good photo to begin. The rest can arrive as the story does.</p>
-                <Link href="/create" className={styles.continue} onClick={beginFresh}>CREATE A WORLD <span aria-hidden="true">→</span></Link>
-              </div>
-            </motion.section>
-          )}
-
-          <section className={styles.ledger} aria-labelledby="ledger-title">
-            <div>
-              <p className={styles.eyebrow}>RELEASE LEDGER</p>
-              <h2 id="ledger-title">KEEP THE<br /><em>GOOD</em> ONES.</h2>
-            </div>
-            <div className={styles.ledgerNote}>
-              <p><strong>LOCAL MODE</strong> — your active draft is saved in this browser while we finish cloud sync.</p>
-              <p>When Clerk and Supabase are activated, this studio becomes your account’s private archive and projects can be resumed from any device.</p>
-            </div>
-          </section>
-        </section>
-      </div>
-    </main>
-  );
+  useEffect(() => { void load().catch(() => { setMessage("Your local drafts couldn't be read. Please reload the studio."); setReady(true); }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  async function action(run: () => Promise<unknown>) { setBusy(true); try { await run(); } catch (e) { setMessage(e instanceof Error ? e.message : "Please try again."); } finally { setBusy(false); } }
+  async function duplicate(row: WebsiteRow) {
+    if (!row.local) { const result = await api<{ id: string }>(`/api/websites/${row.id}`, { method: "POST" }); location.assign(`/create?project=${result.id}`); return; }
+    const p: BirthdayProject = { ...row.project, id: crypto.randomUUID(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), publishing: { status: "draft", visibility: "link" } };
+    saveLocalWebsite(ownerKey, p); location.assign(`/create?project=${p.id}`);
+  }
+  return <StudioShell section={section}>
+    <p className={styles.eyebrow}>Your Ode studio</p><h1 className={styles.title}>{section === "dashboard" ? "What are we making?" : "Birthday websites"}</h1>
+    <p className={styles.subtitle}>{section === "dashboard" ? "A whole little world. Or a few good things, tucked together. Start with someone you love." : "A different world for every person. Each with its own story, style and link."}</p>
+    {section === "dashboard" && <div className={styles.choices}>
+      <Link href="/create?new=1" className={styles.choice}><ItemIcon type="photo" size={48} /><strong>Create a birthday website</strong><small>Their photos, their stories, their own little corner of the internet.</small><span>Make their world ↗</span></Link>
+      <Link href="/dashboard/hamper/new" className={styles.choice}><ItemIcon type="gift" size={48} /><strong>Send a digital hamper</strong><small>A note, a song, a memory. Wrap up the things that feel like them.</small><span>Pack something lovely ↗</span></Link>
+    </div>}
+    {message && <p role="status" className={styles.notice}>{message}</p>}
+    <div className={styles.sectionHeader}><h2 className={styles.heading}>{section === "dashboard" ? "Your recent websites" : "Your websites"}</h2><Link href="/create?new=1" className={styles.quietButton}>+ Create Website</Link></div>
+    {!ready ? <p>Opening your studio…</p> : websites.length === 0 ? <div className={styles.empty}><h2 className={styles.heading}>No birthday websites yet.</h2><p>Make someone&apos;s day.</p></div> : (section === "dashboard" ? websites.slice(0, 4) : websites).map(row => {
+      const p = row.project, name = p.person.nickname || p.person.fullName || "Untitled website", url = p.publishing.status === "published" && p.publishing.slug ? `/${p.publishing.slug}` : undefined;
+      return <article key={row.id} className={styles.row}><div className={styles.rowVisual}><ItemIcon type="photo" size={36} /></div><div><span className={styles.status}>{p.publishing.status}{row.local ? " · on this device" : ""}</span><h2>{name}</h2><p>{p.templateId?.replaceAll("-", " ") || "Theme to choose"}<br />Created {date(row.created_at)} · Edited {date(row.updated_at)}{url && <><br /><a href={url}>{url}</a></>}</p>
+        <div className={styles.actions}><Link href={`/create?project=${row.id}`}>Edit</Link><Link href={url || `/create?project=${row.id}&preview=1`}>Preview</Link>{url && <><button disabled={busy} onClick={() => void action(async () => setMessage(await shareLink(url, name)))}>Share</button><button disabled={busy} onClick={() => void action(async () => setMessage(await shareLink(url, name, true)))}>Copy link</button></>}
+          <button disabled={busy} onClick={() => void action(() => duplicate(row))}>Duplicate</button><button disabled={busy} onClick={() => setDeleting(row)}>Delete</button>
+          {row.local && p.publishing.publishToken && <button disabled={busy} onClick={() => void action(async () => { await api("/api/websites", { method: "POST", body: JSON.stringify({ project: p, token: p.publishing.publishToken }) }); setMessage("Website added to your account."); await load(); })}>Add to my account</button>}
+        </div></div></article>;
+    })}
+    {section === "dashboard" && <><div className={styles.sectionHeader}><h2 className={styles.heading}>Recent hampers</h2><Link className={styles.quietButton} href="/dashboard/hamper">All digital hampers →</Link></div>{hampers.length ? hampers.slice(0, 3).map(h => <article className={styles.row} key={h.id}><div className={styles.rowVisual}><ItemIcon type="gift" /></div><div><span className={styles.status}>{h.status}</span><h2>{h.recipient || "A hamper in the making"}</h2><p>{HAMPER_THEMES[h.theme].name} · {h.openingStyle} · Edited {date(h.updatedAt)}</p><Link className={styles.quietButton} href={`/dashboard/hamper/${h.id}/edit`}>Keep packing →</Link></div></article>) : <div className={styles.empty}><h2 className={styles.heading}>No hampers packed yet.</h2><p>Tuck a few good things into one.</p></div>}</>}
+    {deleting && <Dialog title="Delete this website?" onClose={() => setDeleting(null)}><p>This removes the website and its share link. This can&apos;t be undone.</p><div className={styles.footer}><button className={styles.quietButton} onClick={() => setDeleting(null)}>Keep it</button><button className={styles.button} disabled={busy} onClick={() => void action(async () => {
+      if (!deleting.local) await api(`/api/websites/${deleting.id}`, { method: "DELETE" });
+      removeLocalWebsite(ownerKey, deleting.id);
+      setDeleting(null); await load();
+    })}>Delete website</button></div></Dialog>}
+  </StudioShell>;
 }

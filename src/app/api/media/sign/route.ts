@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "crypto";
+import { requireOwner, requestError } from "@/lib/serverAuth";
 
 export const runtime = "nodejs";
 
@@ -41,6 +42,7 @@ export async function POST(request: Request) {
   }
 
   try {
+    const owner = await requireOwner();
     const body = await request.json() as {
       projectId?: string;
       assetId?: string;
@@ -56,7 +58,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Only image, video, and audio files can be published." }, { status: 415 });
     }
 
-    const path = `worlds/${safeFileName(projectId)}/${safeFileName(assetId)}-${randomUUID()}-${safeFileName(fileName)}`;
+    const path = `worlds/${owner}/${safeFileName(projectId)}/${safeFileName(assetId)}-${randomUUID()}-${safeFileName(fileName)}`;
     const response = await fetch(
       `${config.url}/storage/v1/object/upload/sign/${BUCKET}/${encodedPath(path)}`,
       {
@@ -81,7 +83,6 @@ export async function POST(request: Request) {
     const publicUrl = `${config.url}/storage/v1/object/public/${BUCKET}/${encodedPath(path)}`;
     return NextResponse.json({ uploadUrl, publicUrl });
   } catch (error) {
-    console.error("Unable to sign media upload", error);
-    return NextResponse.json({ error: "Unable to prepare the media upload." }, { status: 500 });
+    return requestError(error);
   }
 }

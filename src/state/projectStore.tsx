@@ -22,6 +22,7 @@ import {
   type TemplateId,
 } from "@/lib/types";
 import { uid } from "@/lib/utils";
+import { activeLocalWebsite, localWebsites, saveLocalWebsite } from "@/lib/localWebsites";
 
 /**
  * ─────────────────────────────────────────────────────────────────────────────
@@ -33,7 +34,6 @@ import { uid } from "@/lib/utils";
  *   `needsRelink` instead of pretending they still work.
  */
 
-const STORAGE_KEY = "birthday-world/project/v1";
 
 export const CREATOR_STEPS: CreatorStepId[] = [
   "gender",
@@ -283,12 +283,10 @@ function reducer(state: BirthdayProject, action: ProjectAction): BirthdayProject
 
 /* ── Persistence ─────────────────────────────────────────────────────────── */
 
-function loadProject(): BirthdayProject | null {
+function loadProject(owner: string): BirthdayProject | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as BirthdayProject;
+    const parsed = activeLocalWebsite(owner);
     // Guard against schema drift between versions.
     if (!parsed || typeof parsed !== "object" || !parsed.id) return null;
     const empty = createEmptyProject();
@@ -319,32 +317,64 @@ interface ProjectContextValue {
 
 const ProjectContext = createContext<ProjectContextValue | null>(null);
 
-export function ProjectProvider({ children }: { children: React.ReactNode }) {
+export function ProjectProvider({ children, projectId, fresh = false, ownerKey = "device" }: { children: React.ReactNode; projectId?: string; fresh?: boolean; ownerKey?: string }) {
   const [project, dispatch] = useReducer(
     reducer,
     undefined,
     createEmptyProject
   );
   const [hydrated, setHydrated] = React.useState(false);
+  const [syncError, setSyncError] = React.useState("");
 
   // Restore once on mount, flagging dead blob URLs honestly.
   useEffect(() => {
-    const stored = loadProject();
-    if (stored) dispatch({ type: "hydrate", project: stored });
-    setHydrated(true);
-  }, []);
+    let cancelled = false;
+    async function restore() {
+      try {
+        const legacy = loadProject(ownerKey);
+        let stored = fresh ? null : legacy;
+        if (projectId) {
+          const cached = localWebsites(ownerKey)[projectId];
+          const response = await fetch(`/api/websites/${encodeURIComponent(projectId)}`);
+          const result = await response.json();
+          if (!response.ok && !cached) throw new Error(result.error || "This website could not be opened.");
+          stored = cached && (!result.project || cached.updatedAt > result.project.updatedAt) ? cached : result.project;
+        }
+        if (!cancelled) {
+          if (stored) dispatch({ type: "hydrate", project: { ...stored, photos: stored.photos.map(p => ({ ...p, needsRelink: p.previewUrl.startsWith("blob:") || p.needsRelink })) } });
+          setHydrated(true);
+        }
+      } catch (error) { if (!cancelled) setSyncError(error instanceof Error ? error.message : "Unable to restore your website."); }
+    }
+    void restore();
+    return () => { cancelled = true; };
+  }, [projectId, fresh, ownerKey]);
 
   // Debounced autosave.
   useEffect(() => {
     if (!hydrated) return;
     const t = window.setTimeout(() => {
       try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(project));
+        saveLocalWebsite(ownerKey, project);
       } catch {
         /* storage full or unavailable — session continues in memory */
       }
     }, 400);
     return () => window.clearTimeout(t);
+  }, [project, hydrated, ownerKey]);
+
+  useEffect(() => {
+    if (!hydrated || project.publishing.status !== "draft") return;
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await fetch("/api/websites", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ project, token: project.publishing.publishToken }), signal: controller.signal });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error);
+        setSyncError("");
+      } catch (error) { if (!controller.signal.aborted) setSyncError(error instanceof Error ? error.message : "Cloud save unavailable; your draft is saved on this device."); }
+    }, 1000);
+    return () => { clearTimeout(timer); controller.abort(); };
   }, [project, hydrated]);
 
   const goToStep = useCallback((step: CreatorStepId) => {
@@ -357,7 +387,10 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <ProjectContext.Provider value={value}>{children}</ProjectContext.Provider>
+    <ProjectContext.Provider value={value}>
+      {syncError && <p role="status" className="border-b border-line bg-paper px-5 py-3 text-sm">{syncError} {hydrated ? "Your draft is kept on this device." : <a href="/dashboard">Return to dashboard</a>}</p>}
+      {hydrated ? children : <p className="p-8">Opening your website…</p>}
+    </ProjectContext.Provider>
   );
 }
 

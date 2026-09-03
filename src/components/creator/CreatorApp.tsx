@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { CREATOR_STEPS, useProject } from "@/state/projectStore";
 import OdeLogo from "@/components/brand/OdeLogo";
@@ -45,9 +46,9 @@ const STEP_INDEX_LABEL: Partial<Record<CreatorStepId, string>> = {
   words: "07",
 };
 
-export default function CreatorApp() {
+export default function CreatorApp({ preview = false }: { preview?: boolean }) {
   const { project, hydrated } = useProject();
-  const [step, setStep] = useState<CreatorStepId>("gender");
+  const [step, setStep] = useState<CreatorStepId>(preview ? "preview" : "gender");
   const [saveState, setSaveState] = useState<"saved" | "saving">("saved");
 
   // Jump to the furthest reached step once a stored project hydrates.
@@ -82,16 +83,16 @@ export default function CreatorApp() {
       {/* ── Top bar: minimal branding ── */}
       <header className="sticky top-0 z-40 border-b border-line bg-paper/95 backdrop-blur-sm">
         <div className="mx-auto flex max-w-editorial items-center justify-between px-5 py-3 sm:px-8">
-          <button
-            type="button"
-            onClick={() => setStep("gender")}
+          <Link
+            href="/dashboard"
+            aria-label="Ode dashboard"
             className="font-mono text-xs uppercase tracking-widest2 text-ink"
           >
             <span className="flex items-center gap-2">
               <OdeLogo className="h-9 w-9 rounded-[22%]" size={36} variant="light" />
               <span>ODE</span>
             </span>
-          </button>
+          </Link>
 
           <div className="flex items-center gap-6 font-mono text-[10px] uppercase tracking-widest2 text-ink-faint sm:text-[11px]">
             {step !== "gender" && (
@@ -111,7 +112,7 @@ export default function CreatorApp() {
                   saveState === "saved" ? "bg-moss" : "bg-ember"
                 )}
               />
-              {saveState === "saved" ? "Saved" : "Saving"}
+              {saveState === "saved" ? "Saved on device" : "Saving"}
             </span>
           </div>
         </div>

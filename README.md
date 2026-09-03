@@ -1,5 +1,11 @@
 # Birthday World — an interactive birthday website generator
 
+> **Studio update:** multiple account-owned birthday websites and Digital Hampers
+> are implemented. See [DIGITAL_HAMPERS.md](DIGITAL_HAMPERS.md) for routes,
+> migrations 003/004, new environment variables, storage/PIN design and testing.
+> The older prototype setup notes below describe the original birthday feature;
+> cloud writes now require Clerk authentication.
+
 A curated, art-directed generator. The person's photos, personality and memories
 carry the whole site — not a navbar/hero/cards/features template.
 
@@ -52,10 +58,10 @@ in the Supabase SQL editor, then add `NEXT_PUBLIC_SUPABASE_URL` plus a server-on
 can load permanent images; its upload URLs are signed by the server and the
 secret must never use a `NEXT_PUBLIC_` prefix.
 
-The SQL migration is intentionally reproducible. Once creator authentication
-and Storage credentials are available, add `owner_id`/RLS policies and
-`project_photos` storage metadata rows in a follow-up migration; the current
-write-token guard protects slug updates in this unauthenticated prototype.
+Apply migration 003 to add Clerk ownership and RLS while preserving existing
+rows and links. Cloud writes require a signed-in creator; the old write token
+can recover an unclaimed legacy website into that account. Apply migration 004
+for Digital Hampers and its private media bucket. See [DIGITAL_HAMPERS.md](DIGITAL_HAMPERS.md).
 
 ## Product flow
 

@@ -1,0 +1,22 @@
+export type HamperTheme = "soft-parcel" | "berry-letter" | "buttercup-picnic" | "cloud-ribbon";
+export type OpeningStyle = "burst" | "scene";
+export type DrawingStroke = { color: string; width: number; points: [number, number][] };
+export type ItemPayloads = {
+  note: { title?: string; body: string };
+  photo: { caption?: string; assetId: string };
+  song: { title?: string; url: string };
+  video: { caption?: string; url: string };
+  voice: { title?: string; assetId: string };
+  drawing: { caption?: string; strokes: DrawingStroke[] };
+  gift: { note?: string; url: string };
+  location: { place: string; note?: string; url?: string };
+  coupon: { title: string; description?: string; code?: string; url?: string; expiry?: string };
+  news: { headline?: string; note?: string; url: string };
+};
+export type ItemType = keyof ItemPayloads;
+export type HamperItem = { [K in ItemType]: { id: string; type: K; position: number; payload: ItemPayloads[K]; assetBytes: number; assetUrl?: string } }[ItemType];
+export type HamperContent = { recipient: string; sender: string; message: string; theme: HamperTheme; openingStyle: OpeningStyle; items: HamperItem[] };
+export type ShareLink = { id: string; slug: string; is_primary: boolean; revoked_at: string | null; created_at: string };
+export type Hamper = HamperContent & { id: string; status: "draft" | "published"; createdAt: string; updatedAt: string; hasPin: boolean; links: ShareLink[]; views: number; opened: number };
+export type EventType = "hamper_viewed" | "pin_unlocked" | "box_first_shake" | "box_second_shake" | "box_opened" | "item_opened" | "external_link_clicked";
+export type Analytics = { views: number; opened: number; clicks: number; items: { item_id: string; count: number }[]; recent: { event_type: EventType; created_at: string }[] };

@@ -3,6 +3,7 @@
 
 # next.js
 /.next/
+/.next-build/
 /out/
 
 # production
@@ -34,3 +35,6 @@ next-env.d.ts
 # log files
 *.txt
 
+.playwright/
+playwright-report/
+test-results/
