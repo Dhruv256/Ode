@@ -25,6 +25,8 @@ Migrations 001 and 002 remain prerequisites on a new database. Migration 003 add
 
 Migration 004 creates `digital_hampers`, `hamper_items`, `hamper_assets`, `hamper_share_links`, `hamper_events`, `hamper_access_attempts`, and `hamper_storage_cleanup`; all use RLS with browser-role access revoked. The server uses the existing pooled PostgreSQL connection and derives owners from Clerk. No separate Supabase Auth identity is introduced.
 
+Migration 004 is safe to rerun against the current schema, including populated tables. Existing hampers, items, PIN hashes and share links are preserved; indexes, functions, triggers and the storage policy are installed without duplicate-object errors. An incompatible older schema fails with a repair instruction before any schema changes. If an old copy reports `42P07: relation "digital_hampers" already exists`, use the updated file or check the schema with `npm run db:studio -- --check`; do not delete tables to rerun it.
+
 The migration also creates **private** `ode-hamper-assets`, with a 5 MB bucket cap and allowed MIME types, and a restrictive policy shielding that bucket from broader browser storage policies. The existing public `birthday-media` bucket is unchanged. No manual table or bucket creation is necessary.
 
 New code expects both migrations; apply them to each deployment database before application traffic reaches these routes. The connected database was repaired on 3 September 2026 using the command below, preserving its three existing birthday sites and installing the current hamper schema. Other deployment databases still need their own migration checks.
@@ -43,7 +45,7 @@ npm run db:studio -- --verify
 
 It applies migration 003 and installs migration 004 where needed. When all five legacy hamper tables are empty, it retains them in the private `ode_legacy_hamper_v1` schema before creating the current tables. It locks and rechecks them before moving anything, refuses populated or mixed legacy schemas, preserves birthday content/slugs/write tokens/timestamps, and rolls back the whole repair if any step fails. A completed repair is safe to rerun. It never runs automatically from a web request.
 
-`--verify` exercises website listing, draft creation, links, item saves, events, rate limits and upload reservations against the connected database inside a transaction that is always rolled back. It does not upload media or leave sample hampers behind. The repair implementation is in `scripts/repair-studio-schema.mjs` and `scripts/lib/studio-schema.mjs`; six regression tests in `tests/studioSchema.test.ts` cover the two reported failures, content preservation, refusal to move populated tables, retry behavior and rollback on a late failure.
+`--verify` exercises website listing, draft creation, links, item saves, events, rate limits and upload reservations against the connected database inside a transaction that is always rolled back. It does not upload media or leave sample hampers behind. The repair implementation is in `scripts/repair-studio-schema.mjs` and `scripts/lib/studio-schema.mjs`; eight regression tests in `tests/studioSchema.test.ts` cover the two reported failures, content preservation, refusal to move populated tables, retry behavior, rollback on a late failure, and repeated migration runs with existing content and enforced access controls/quotas.
 
 The connected-database repair and rolled-back live verification both passed. All 71 unit/database tests, typecheck, lint and the production build pass after the repair changes. Server error logs now include only PostgreSQL error codes and schema identifiers (table/column/constraint), excluding private failing-row details.
 
@@ -63,6 +65,12 @@ Set `NEXT_PUBLIC_CLERK_ENABLED=true` for the authenticated cloud studio. With Cl
 `vercel.json` schedules `/api/hamper-maintenance` once daily at 03:00 UTC. Configure `CRON_SECRET` in Vercel. Deleting a hamper queues its asset paths in the same database transaction. The scheduled route retries failed deletions and collects abandoned uploads. Young assets wait three hours before cleanup so a still-valid upload URL cannot recreate a deleted file. Normal saves/deletes also attempt due cleanup.
 
 The local upload failure was traced to template values for the Supabase URL and service key. The URL was corrected to match the working database project, the user supplied the real server key, and missing local privacy/cron secrets were generated without logging their values. Restart the development server after changing `.env.local`. These local secrets are ignored by Git and must be configured separately in deployment environments; deploying is not required to test uploads locally.
+
+### "Hamper privacy is not configured yet" on a deployed site
+
+This server error means that the running deployment's `HAMPER_ACCESS_SECRET` is missing or shorter than 32 characters. It is independent of migration 004 and also blocks unlisted publication because recipient analytics uses signed sessions.
+
+In the existing Vercel project's **Settings → Environment Variables**, set `HAMPER_ACCESS_SECRET` using the local `.env.local` value, selecting **Production** (and **Preview** if testing preview deployments). Keep the exact name without a `NEXT_PUBLIC_` prefix. Save and redeploy the affected deployment; environment changes only apply to new deployments, as described in [Vercel's environment-variable documentation](https://vercel.com/docs/environment-variables/managing-environment-variables). Then reload the builder and retry publishing. Do not commit `.env.local` or paste the secret into logs or chat. `CRON_SECRET` should also be configured for scheduled cleanup, but it does not cause this publishing error.
 
 The storage adapter now rejects placeholder configuration clearly and reads Supabase's actual `content_type` metadata field, while retaining support for older metadata shapes. Previously, a successfully uploaded photo could fail finalization because the MIME type was read as empty.
 

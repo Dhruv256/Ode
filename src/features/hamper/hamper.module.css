@@ -59,6 +59,60 @@
 .drawing { display:block; width:100%; aspect-ratio:10/7; background:#fffdf7; border:1px solid #c9bca6; touch-action:none; }.drawingPreview { display:block; width:100%; height:auto; background:#fffdf7; }.palette { display:flex; gap:8px; flex-wrap:wrap; margin:16px 0; }.palette button { width:44px; height:44px; border:1px solid #b2a58e; border-radius:50%; }.palette button[aria-pressed=true] { outline:2px solid #392c20; outline-offset:2px; }
 .audio { padding:24px 0; display:grid; gap:18px; }.wave { display:flex; align-items:center; justify-content:center; gap:4px; height:64px; }.wave i { width:5px; background:var(--h-accent,#9c3e2e); border-radius:2px; }.audio input { width:100%; }.audio time { font:400 13px "IBM Plex Mono",monospace; }
 .recipient { --h-paper:#faf3e7; --h-accent:#9c3e2e; --h-soft:#efcbb3; --h-box:#c8a37b; background:var(--h-paper); color:#35291f; min-height:100dvh; width:100%; position:relative; overflow:clip; container-type:inline-size; }
+.recipient[data-theme=proper-retro] {
+  --retro-ink:#372a20;
+  background-color:#e8d7b5;
+  background-image:linear-gradient(90deg,#7e2f2510 1px,transparent 1px),linear-gradient(#7e2f2510 1px,transparent 1px),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='130' height='130'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.74' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.16'/%3E%3C/svg%3E");
+  background-size:32px 32px,32px 32px,130px 130px;
+  color:var(--retro-ink);
+}
+.recipient[data-theme=proper-retro] .recipientHeader { border-bottom:1px solid #5c392b55; font:700 10px "IBM Plex Mono",monospace; letter-spacing:.22em; text-transform:uppercase; }
+.recipient[data-theme=proper-retro] .closed::before { content:"SPECIAL DELIVERY · ODE POSTAL SERVICE · HANDLE WITH FEELING"; position:absolute; top:78px; left:50%; width:max-content; max-width:90vw; transform:translateX(-50%) rotate(-1deg); border-block:2px solid #9d3826; padding:5px 12px; color:#9d3826; font:700 9px "IBM Plex Mono",monospace; letter-spacing:.16em; }
+.recipient[data-theme=proper-retro] .mailTitle { font-family:"Cooper Black","Fraunces",Georgia,serif; color:#7e2f25; text-shadow:2px 2px 0 #d19a45; }
+.recipient[data-theme=proper-retro] .package { border:10px solid transparent; border-radius:1px; background:linear-gradient(#a85a32,#9a4c2d) padding-box,repeating-linear-gradient(135deg,#efe0bd 0 10px,#9d3826 10px 20px,#d19a45 20px 30px,#efe0bd 30px 40px) border-box; box-shadow:0 24px 0 -13px #4d3029,0 28px 45px #3f281c66,inset 0 0 70px #3b1d1238; }
+.recipient[data-theme=proper-retro] .package::before { content:"EXPRESS / 1978"; position:absolute; right:13px; top:55px; z-index:2; border:3px double #7e2f25; border-radius:50%; padding:12px 7px; color:#7e2f25; background:#e8d7b5; font:800 8px "IBM Plex Mono",monospace; transform:rotate(9deg); }
+.recipient[data-theme=proper-retro] .package::after { background:#d7bd7a99; border-inline:2px dashed #5d372b; }
+.recipient[data-theme=proper-retro] .lid { background:#8f4229; border-color:#4b2c22; }
+.recipient[data-theme=proper-retro] .tape { background:#dfc481aa; border-color:#573327; }
+.recipient[data-theme=proper-retro] .label { background:#eadbb9; border:0; outline:1px solid #59392c; outline-offset:-7px; padding:24px; box-shadow:4px 5px 0 #4d2d23; }
+.recipient[data-theme=proper-retro] .label b { border:0; background:#9d3826; color:#eadbb9; padding:5px 8px; }
+.recipient[data-theme=proper-retro] .label strong { font-family:"Courier Prime","Courier New",monospace; font-weight:700; }
+.recipient[data-theme=proper-retro] .barcode { background:repeating-linear-gradient(90deg,#3d2a20 0 2px,transparent 2px 4px,#3d2a20 4px 5px,transparent 5px 8px); }
+.recipient[data-theme=proper-retro] .opened { position:relative; }
+.recipient[data-theme=proper-retro] .openingNote { border-block:4px double #4e3428; padding:32px 12px; }
+.recipient[data-theme=proper-retro] .openingNote h1 { font-family:"Cooper Black","Fraunces",Georgia,serif; color:#7e2f25; }
+.recipient[data-theme=proper-retro] .openingNote p { font-family:"Courier Prime","Courier New",monospace; font-size:18px; }
+.recipient[data-theme=proper-retro] .scene { border:12px solid #72442f; border-radius:0; background-color:#c9954d; background-image:linear-gradient(45deg,#70452d12 25%,transparent 25% 75%,#70452d12 75%),linear-gradient(45deg,#70452d12 25%,transparent 25% 75%,#70452d12 75%); background-position:0 0,12px 12px; background-size:24px 24px; box-shadow:inset 0 0 0 5px #e3c987,inset 0 0 70px #4c2b1d55; }
+.recipient[data-theme=proper-retro] .scene::before { width:88px; height:18px; border:5px solid #453129; background:#d6b66d; box-shadow:inset 0 0 0 2px #8b5e36; }
+
+/* In Proper Retro, every keepsake is a different found analog object. */
+.recipient[data-theme=proper-retro] .object { border-radius:0; color:#843326; filter:saturate(.82); box-shadow:4px 7px 0 #4b2e2238; }
+.recipient[data-theme=proper-retro] .object[data-type=note] { background:repeating-linear-gradient(#eadbb9 0 27px,#9c6b4a55 28px); border-left:7px solid #9d3826; transform:rotate(-1deg); }
+.recipient[data-theme=proper-retro] .object[data-type=photo] { background:#e9d8b5; border:1px solid #5e4535; padding:10px 10px 34px; transform:rotate(1.2deg); }
+.recipient[data-theme=proper-retro] .object[data-type=song] { aspect-ratio:auto; border:8px solid #3e3028; border-radius:4px; background:linear-gradient(#d9b96d 0 28%,#efe0bd 28% 72%,#a6492f 72%); }
+.recipient[data-theme=proper-retro] .object[data-type=song]::before { content:"●   ●"; color:#3c3029; font:28px/1 "IBM Plex Mono",monospace; letter-spacing:12px; }
+.recipient[data-theme=proper-retro] .object[data-type=video] { border:12px ridge #6f4b35; border-radius:18px; background:#403c32; color:#e2bd66; }
+.recipient[data-theme=proper-retro] .object[data-type=voice] { border:6px solid #50473a; border-radius:5px; background:repeating-linear-gradient(90deg,#bca76c 0 3px,#5b4b37 3px 5px); }
+.recipient[data-theme=proper-retro] .object[data-type=drawing] { border:1px solid #6b4936; border-left:10px dotted #9d3826; background:#e6d5ad; transform:rotate(-.8deg); }
+.recipient[data-theme=proper-retro] .object[data-type=gift] { border:0; outline:5px double #5a3527; background:repeating-linear-gradient(45deg,#a6492f 0 13px,#d09b47 13px 26px,#e2c67f 26px 39px); }
+.recipient[data-theme=proper-retro] .object[data-type=location] { background-color:#d1bc7d; background-image:linear-gradient(32deg,transparent 45%,#8f3d2c55 47% 49%,transparent 51%),linear-gradient(148deg,transparent 45%,#4c623755 47% 49%,transparent 51%); }
+.recipient[data-theme=proper-retro] .object[data-type=coupon] { border:3px dashed #7f3326; background:#dfbd66; clip-path:polygon(0 0,100% 0,100% 42%,96% 50%,100% 58%,100% 100%,0 100%,0 58%,4% 50%,0 42%); }
+.recipient[data-theme=proper-retro] .object[data-type=news] { border:5px double #4b382d; background:repeating-linear-gradient(90deg,#e2d3b1 0 31%,#92725355 31% 32%,#e2d3b1 32% 65%,#92725355 65% 66%,#e2d3b1 66%); }
+.recipient[data-theme=proper-retro] .object strong,.recipient[data-theme=proper-retro] .object small { color:#39291f; }
+.recipient[data-theme=proper-retro] .object[data-type=video] strong,.recipient[data-theme=proper-retro] .object[data-type=video] small,.recipient[data-theme=proper-retro] .object[data-type=song] strong,.recipient[data-theme=proper-retro] .object[data-type=song] small { color:#f1ddb0; }
+
+.dialog[data-theme=proper-retro] { background-color:#e8d7b5; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.14'/%3E%3C/svg%3E"); border:8px double #4e3428; border-radius:0; color:#39291f; }
+.dialog[data-theme=proper-retro] .dialogBar { background:#9d3826; color:#f2dfb3; border:0; }
+.dialog[data-theme=proper-retro][data-kind=note] .letter { font-family:"Courier New",monospace; background:repeating-linear-gradient(transparent 0 31px,#7d553b45 32px); }
+.dialog[data-theme=proper-retro][data-kind=photo] .itemBody { background:#ead9b6; padding:12px 12px 30px; box-shadow:4px 6px 0 #4b302638; }
+.dialog[data-theme=proper-retro][data-kind=song] { border-color:#3d332a; background:#d3ae58; }
+.dialog[data-theme=proper-retro][data-kind=video] { border:18px ridge #65452f; border-radius:20px; background:#37342c; color:#f0ddad; }
+.dialog[data-theme=proper-retro][data-kind=voice] { border-color:#4e4638; background:#c5ae70; }
+.dialog[data-theme=proper-retro][data-kind=drawing] { border-left:16px dotted #9d3826; }
+.dialog[data-theme=proper-retro][data-kind=gift] { background:repeating-linear-gradient(45deg,#a64c33 0 18px,#d4a34f 18px 36px,#e5ca83 36px 54px); }
+.dialog[data-theme=proper-retro][data-kind=location] { background-color:#d1bd7f; background-image:linear-gradient(35deg,transparent 47%,#82402d44 48% 50%,transparent 51%); }
+.dialog[data-theme=proper-retro][data-kind=coupon] { border-inline-style:dashed; background:#dfbd66; }
+.dialog[data-theme=proper-retro][data-kind=news] { background:#ded1b2; font-family:Georgia,serif; }
 .recipientHeader { padding:28px 20px; display:flex; justify-content:center; font:400 15px "Caveat",cursive; color:var(--h-accent); }
 .closed { min-height: min(720px,calc(100dvh - 80px)); display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px 20px 60px; gap:28px; }
 .mailTitle { font:400 clamp(32px,7cqw,54px)/1.1 "Fraunces",Georgia,serif; text-align:center; letter-spacing:-.04em; }.tapHint { font:400 24px "Caveat",cursive; color:var(--h-accent); text-align:center; }

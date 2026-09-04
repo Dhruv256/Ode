@@ -78,11 +78,34 @@ describe("studio schema repair", () => {
   });
   it("restores the original tables if a later migration fails after archiving", async () => {
     await legacy();
-    await db.exec("create policy hamper_bucket_server_only on storage.objects for all to anon using(false)");
-    await expect(repair()).rejects.toThrow("already exists");
+    await db.exec("alter table storage.buckets drop column allowed_mime_types");
+    await expect(repair()).rejects.toThrow("does not exist");
     const state = await inspectStudioSchema(adapter(db));
     expect(state.legacy).toBe(true);
     expect(state.missing).toContain("birthday_projects.owner_id");
     expect((await db.query("select to_regnamespace('ode_legacy_hamper_v1') as archive")).rows).toEqual([{ archive: null }]);
+  });
+  it("allows migration 004 to run repeatedly without changing content, links, PINs or permissions", async () => {
+    await repair();
+    const [{ id }] = (await db.query<{ id: string }>("insert into digital_hampers(owner_id,recipient,sender,status,pin_hash) values('owner','Recipient','Sender','published','keep-this-hash') returning id")).rows;
+    await db.query("insert into hamper_share_links(hamper_id,slug,is_primary) values($1,'keep-this-link',true)", [id]);
+    await db.query("insert into hamper_items(id,hamper_id,type,position,payload) values(gen_random_uuid(),$1,'note',0,'{\"body\":\"Keep this note\"}')", [id]);
+    const snapshot = async () => Promise.all(["birthday_projects", "digital_hampers", "hamper_share_links", "hamper_items"].map(async table => (await db.query(`select * from ${table}`)).rows));
+    const before = await snapshot();
+    await db.exec(migration("004_digital_hampers.sql"));
+    await db.exec(migration("004_digital_hampers.sql"));
+    expect(await snapshot()).toEqual(before);
+    expect((await db.query("select count(*)::int as count from pg_trigger where tgname in ('hamper_count','hamper_asset_quota','hamper_item_quota','hamper_asset_cleanup')")).rows).toEqual([{ count: 4 }]);
+    expect((await db.query("select count(*)::int as count from pg_policies where policyname='hamper_bucket_server_only' and permissive='RESTRICTIVE'")).rows).toEqual([{ count: 1 }]);
+    expect((await db.query("select has_table_privilege('anon','digital_hampers','SELECT') as access")).rows).toEqual([{ access: false }]);
+    for (let i = 0; i < 9; i++) await db.query("insert into digital_hampers(owner_id) values('owner')");
+    await expect(db.query("insert into digital_hampers(owner_id) values('owner')")).rejects.toThrow("At most 10");
+  });
+  it("rejects the incompatible legacy schema before changing any table", async () => {
+    await legacy();
+    await expect(db.exec(migration("004_digital_hampers.sql"))).rejects.toThrow("Incompatible existing table");
+    await db.exec("rollback");
+    expect((await inspectStudioSchema(adapter(db))).legacy).toBe(true);
+    expect((await db.query("select to_regclass('public.hamper_assets') as assets")).rows).toEqual([{ assets: null }]);
   });
 });

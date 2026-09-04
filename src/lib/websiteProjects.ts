@@ -4,6 +4,7 @@ import { database } from "./database";
 import { RequestError } from "./serverAuth";
 import { validSlug } from "./publishing";
 import type { BirthdayProject } from "./types";
+import { BIRTHDAY_PHOTO_LIMIT, CUSTOM_MEMORY_LIMIT, resolvePhotoMode, validatePhotoUsage } from "./birthdayCapabilities";
 
 export function validateWebsite(value: unknown): BirthdayProject {
   const p = value as BirthdayProject | undefined;
@@ -11,6 +12,18 @@ export function validateWebsite(value: unknown): BirthdayProject {
     !p.publishing || !["draft", "published", "archived"].includes(p.publishing.status) ||
     !["private", "link", "public"].includes(p.publishing.visibility) || !Array.isArray(p.photos) ||
     !Array.isArray(p.memories) || !Array.isArray(p.interests) || !p.vibes) throw new RequestError("This website draft is incomplete.");
+  if (p.photos.length > BIRTHDAY_PHOTO_LIMIT) throw new RequestError(`Birthday websites can hold up to ${BIRTHDAY_PHOTO_LIMIT} photos.`);
+  if (p.photoMode && !["auto", "standard", "high-photo"].includes(p.photoMode)) throw new RequestError("Choose a valid photo mode.");
+  if ((p.customMemories?.length ?? 0) > CUSTOM_MEMORY_LIMIT) throw new RequestError(`Add up to ${CUSTOM_MEMORY_LIMIT} custom memories.`);
+  for (const memory of p.customMemories ?? []) {
+    if (!memory || typeof memory.id !== "string" || typeof memory.label !== "string" || typeof memory.value !== "string" ||
+      memory.label.length > 80 || memory.value.length > 600 || (memory.icon?.length ?? 0) > 12 ||
+      !["subtle", "normal", "prominent"].includes(memory.prominence)) throw new RequestError("A custom memory is invalid.");
+  }
+  if (resolvePhotoMode(p) === "high-photo") {
+    const usage = validatePhotoUsage(p.photos, p.photos.map((photo) => photo.id));
+    if (!usage.valid) throw new RequestError("Every photo must be assigned in 50+ photo mode.");
+  }
   return p;
 }
 

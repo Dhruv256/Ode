@@ -7,6 +7,7 @@ import type { StepNav } from "@/components/creator/CreatorApp";
 import { useProject } from "@/state/projectStore";
 import { uid, cn, clamp } from "@/lib/utils";
 import type { FocalPoint, ImageFitMode, PhotoAsset, PhotoOrientation } from "@/lib/types";
+import { BIRTHDAY_PHOTO_LIMIT, HIGH_PHOTO_THRESHOLD, resolvePhotoMode } from "@/lib/birthdayCapabilities";
 
 const FIT_MODES: ImageFitMode[] = ["fit", "fill", "original", "manual"];
 
@@ -20,12 +21,20 @@ export default function PhotosStep({ nav }: { nav: StepNav }) {
   const { project, dispatch } = useProject();
   const [dragging, setDragging] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const selectedMode = project.photoMode ?? "auto";
+  const resolvedMode = resolvePhotoMode(project);
 
   const addFiles = useCallback(
     async (files: FileList | File[]) => {
       const list = Array.from(files).filter((f) => f.type.startsWith("image/") || f.type.startsWith("video/"));
       if (list.length === 0) return;
+      if (project.photos.length + list.length > BIRTHDAY_PHOTO_LIMIT) {
+        setUploadError(`That batch would take this website past ${BIRTHDAY_PHOTO_LIMIT} photos. Nothing was dropped—remove ${project.photos.length + list.length - BIRTHDAY_PHOTO_LIMIT} file${project.photos.length + list.length - BIRTHDAY_PHOTO_LIMIT === 1 ? "" : "s"} from the batch and try again.`);
+        return;
+      }
+      setUploadError("");
       const assets: PhotoAsset[] = [];
       let order = project.photos.length;
       for (const file of list) {
@@ -63,6 +72,23 @@ export default function PhotosStep({ nav }: { nav: StepNav }) {
 
       <p className="mt-5 max-w-lg text-ink-soft">{guidanceLine(project.photos.length)}</p>
 
+      <fieldset className="mt-8 border border-line p-4 sm:p-5">
+        <legend className="px-2 font-mono text-[10px] uppercase tracking-widest2">Photo choreography</legend>
+        <div className="grid gap-2 sm:grid-cols-3">
+          {([
+            ["auto", "Auto", `Switches at ${HIGH_PHOTO_THRESHOLD} photos`],
+            ["standard", "Standard", "A shorter, edited rhythm"],
+            ["high-photo", "50+ Photo", "A lossless visual archive"],
+          ] as const).map(([mode, label, detail]) => <button key={mode} type="button" aria-pressed={selectedMode === mode} onClick={() => dispatch({ type: "setPhotoMode", mode })} className="min-h-16 border border-line p-3 text-left aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-paper">
+            <strong className="block font-display text-lg font-normal">{label}</strong>
+            <small className="mt-1 block font-mono text-[9px] uppercase tracking-wider opacity-65">{detail}</small>
+          </button>)}
+        </div>
+        <p className="mt-3 font-mono text-[10px] uppercase tracking-widest2 text-ink-faint">
+          Active: {resolvedMode === "high-photo" ? "50+ Photo · every upload is rendered" : "Standard"} · {project.photos.length}/{BIRTHDAY_PHOTO_LIMIT}
+        </p>
+      </fieldset>
+
       {/* Dropzone */}
       <div
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
@@ -97,6 +123,7 @@ export default function PhotosStep({ nav }: { nav: StepNav }) {
           }}
         />
       </div>
+      {uploadError && <p role="alert" className="mt-4 border-l-2 border-ember bg-paper-deep px-4 py-3 text-sm leading-relaxed text-ember">{uploadError}</p>}
 
       {/* Stale-photo notice after a reload */}
       {project.photos.some((p) => p.needsRelink) && (
@@ -141,7 +168,8 @@ function guidanceLine(count: number): string {
     return "8–12 photos feels intimate · 15–25 is ideal · 30+ becomes a full archive.";
   if (count <= 12) return `${count} added — intimate range.`;
   if (count <= 29) return `${count} added — ideal range.`;
-  return `${count} added — full archive territory.`;
+  if (count < HIGH_PHOTO_THRESHOLD) return `${count} added — full archive territory. Auto switches to 50+ Photo at ${HIGH_PHOTO_THRESHOLD}.`;
+  return `${count} added — 50+ Photo mode is active. Every upload will appear.`;
 }
 
 function orientationOf(w: number, h: number): PhotoOrientation {

@@ -12,10 +12,12 @@ import {
   createEmptyProject,
   type BirthdayProject,
   type CreatorStepId,
+  type CustomMemoryBlock,
   type Gender,
   type Interest,
   type Memory,
   type MemoryKey,
+  type PhotoMode,
   type Relationship,
   type PublishingSettings,
   type SoundtrackAsset,
@@ -68,6 +70,7 @@ type ProjectAction =
   | { type: "setPalette"; paletteId: string }
   | { type: "setCustomPaletteColors"; colors: string[] }
   | { type: "addPhotos"; photos: BirthdayProject["photos"] }
+  | { type: "setPhotoMode"; mode: PhotoMode }
   | {
       type: "patchPhoto";
       photoId: string;
@@ -80,6 +83,9 @@ type ProjectAction =
   | { type: "markPhotosStale" }
   | { type: "setMemoryAnswer"; key: MemoryKey; answer: string; skipped?: boolean }
   | { type: "skipMemory"; key: MemoryKey }
+  | { type: "addCustomMemory"; memory: CustomMemoryBlock }
+  | { type: "patchCustomMemory"; memoryId: string; patch: Partial<CustomMemoryBlock> }
+  | { type: "removeCustomMemory"; memoryId: string }
   | { type: "toggleInterest"; label: string }
   | { type: "addCustomInterest"; label: string }
   | { type: "removeInterest"; interestId: string }
@@ -158,6 +164,9 @@ function reducer(state: BirthdayProject, action: ProjectAction): BirthdayProject
         ...state,
         photos: [...state.photos, ...action.photos],
       });
+
+    case "setPhotoMode":
+      return touch({ ...state, photoMode: action.mode });
 
     case "patchPhoto":
       return touch({
@@ -240,6 +249,24 @@ function reducer(state: BirthdayProject, action: ProjectAction): BirthdayProject
       return touch({ ...state, memories });
     }
 
+    case "addCustomMemory":
+      if ((state.customMemories?.length ?? 0) >= 10) return state;
+      return touch({ ...state, customMemories: [...(state.customMemories ?? []), action.memory] });
+
+    case "patchCustomMemory":
+      return touch({
+        ...state,
+        customMemories: (state.customMemories ?? []).map((memory) =>
+          memory.id === action.memoryId ? { ...memory, ...action.patch } : memory
+        ),
+      });
+
+    case "removeCustomMemory":
+      return touch({
+        ...state,
+        customMemories: (state.customMemories ?? []).filter((memory) => memory.id !== action.memoryId),
+      });
+
     case "toggleInterest": {
       const existing = state.interests.find(
         (i) => i.label.toLowerCase() === action.label.toLowerCase()
@@ -294,8 +321,10 @@ function loadProject(owner: string): BirthdayProject | null {
       ...empty,
       ...parsed,
       photos: Array.isArray(parsed.photos) ? parsed.photos : [],
+      photoMode: ["auto", "standard", "high-photo"].includes(parsed.photoMode ?? "auto") ? (parsed.photoMode ?? "auto") : "auto",
       interests: Array.isArray(parsed.interests) ? parsed.interests : [],
       memories: Array.isArray(parsed.memories) ? parsed.memories : [],
+      customMemories: Array.isArray(parsed.customMemories) ? parsed.customMemories.slice(0, 10) : [],
       guestMessages: Array.isArray(parsed.guestMessages) ? parsed.guestMessages : [],
       vibes: parsed.vibes && Array.isArray(parsed.vibes.vibes) ? parsed.vibes : empty.vibes,
       publishing: { ...empty.publishing, ...(parsed.publishing ?? {}) },

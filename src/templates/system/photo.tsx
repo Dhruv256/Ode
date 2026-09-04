@@ -69,6 +69,7 @@ export function Photo({
   if (photo.needsRelink || failed) {
     return (
       <div
+        data-photo-id={photo.id}
         className={cn("tp-frame flex items-center justify-center p-4 text-center font-mono text-[10px] uppercase leading-relaxed tracking-widest opacity-60", aspect, className)}
         style={{ background: "var(--tp-panel, #efe9dc)" }}
       >
@@ -82,6 +83,7 @@ export function Photo({
 
   return (
     <figure
+      data-photo-id={photo.id}
       className={cn("tp-frame", footprintClass, aspect, className)}
       style={style}
     >

@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { CAROUSEL_AUTOPLAY_MS } from "@/lib/birthdayCapabilities";
 
 export type CarouselKind = "film" | "editorial" | "fade" | "vertical" | "stack" | "window" | "orbit" | "poster" | "spread";
 
@@ -24,7 +25,7 @@ export function AutoCarousel<T>({
   getKey,
   kind = "fade",
   visible = 1,
-  autoMs = 5200,
+  autoMs = CAROUSEL_AUTOPLAY_MS,
   resumeDelay = 3200,
   className,
   viewportClassName,
@@ -54,15 +55,18 @@ export function AutoCarousel<T>({
   const resumeTimer = useRef<number>();
   const count = items.length;
   const shown = Math.min(visible, Math.max(1, count));
+  // One product-wide rhythm: callers may keep legacy hints, but published
+  // birthday carousels advance at the promised 2.5 second cadence.
+  const effectiveAutoMs = CAROUSEL_AUTOPLAY_MS;
 
   const next = useCallback(() => setActive((value) => count ? (value + 1) % count : 0), [count]);
   const previous = useCallback(() => setActive((value) => count ? (value - 1 + count) % count : 0), [count]);
 
   useEffect(() => {
     if (count < 2 || paused || reduced) return;
-    const interval = window.setInterval(next, autoMs);
+    const interval = window.setInterval(next, effectiveAutoMs);
     return () => window.clearInterval(interval);
-  }, [autoMs, count, next, paused, reduced]);
+  }, [effectiveAutoMs, count, next, paused, reduced]);
 
   useEffect(() => () => {
     if (resumeTimer.current) window.clearTimeout(resumeTimer.current);
@@ -135,6 +139,6 @@ export function AutoCarousel<T>({
   </section>;
 }
 
-export function TextCarousel({ items, kind = "vertical", className, autoMs = 4200, label = "Rotating words" }: { items: readonly string[]; kind?: CarouselKind; className?: string; autoMs?: number; label?: string }) {
+export function TextCarousel({ items, kind = "vertical", className, autoMs = CAROUSEL_AUTOPLAY_MS, label = "Rotating words" }: { items: readonly string[]; kind?: CarouselKind; className?: string; autoMs?: number; label?: string }) {
   return <AutoCarousel items={items.filter(Boolean)} getKey={(item) => item} renderItem={(item) => <p>{item}</p>} kind={kind} visible={1} autoMs={autoMs} className={className} label={label} />;
 }

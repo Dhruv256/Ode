@@ -27,7 +27,7 @@ export function Recipient({ content, resolveAsset, onEvent }: { content: HamperC
     timer.current = setTimeout(() => { busyRef.current = false; setBusy(false); if (next === 3) setOpened(true); }, reduced ? 120 : next === 1 ? 240 : next === 2 ? 360 : 700);
   }
   const shake = reduced ? { scale: openingStage ? [1, openingStage === 1 ? 1.015 : 1.03, 1] : 1 } : { rotate: openingStage === 1 ? [0, -2, 3, -2, 0] : openingStage >= 2 ? [0, -5, 6, -4, 0] : 0, y: openingStage >= 2 ? [0, -5, 0] : 0 };
-  return <div className={styles.recipient} style={themeStyle(content.theme)} ref={root} data-opening-stage={openingStage} data-opening-style={content.openingStyle}>
+  return <div className={styles.recipient} style={themeStyle(content.theme)} ref={root} data-theme={content.theme} data-opening-stage={openingStage} data-opening-style={content.openingStyle}>
     <div className={styles.recipientHeader}>a little care, delivered by Ode</div>
     <AnimatePresence mode="wait">
       {!opened ? <motion.div key="package" className={styles.closed} exit={{ opacity: 0, scale: reduced ? 1 : content.openingStyle === "scene" ? 1.08 : .98 }} transition={{ duration: .2 }}>
@@ -60,6 +60,6 @@ export function Recipient({ content, resolveAsset, onEvent }: { content: HamperC
         {!content.items.length && <p className={styles.tapHint}>Your keepsakes will be waiting here.</p>}
       </motion.div>}
     </AnimatePresence>
-    {selected && <ItemView item={selected} onClose={() => setSelected(null)} resolveAsset={resolveAsset} onExternal={() => onEvent?.("external_link_clicked", selected.id)} />}
+    {selected && <ItemView item={selected} theme={content.theme} onClose={() => setSelected(null)} resolveAsset={resolveAsset} onExternal={() => onEvent?.("external_link_clicked", selected.id)} />}
   </div>;
 }

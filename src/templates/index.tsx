@@ -31,6 +31,7 @@ const PosterCity = dynamic(() => import("./poster-city"), { ssr: false });
 import { cn } from "@/lib/utils";
 import { SoundtrackControl } from "@/components/media/SoundtrackControl";
 import { CountdownGate } from "./system/CountdownGate";
+import { PersonalizationSections } from "./system/PersonalizationSections";
 import { useMobileComposition, usePerformanceTier, type PerformanceTier } from "./system/responsive";
 
 const REGISTRY: Record<TemplateId, React.ComponentType<{ ctx: RenderCtx }>> = {
@@ -157,7 +158,7 @@ export function TemplateView({
       data-performance-tier={performanceTier}
       style={{ ...vars, "--tp-display": ctx.fonts.display, background: ctx.theme.bg, color: ctx.theme.text, fontFamily: ctx.fonts.body } as React.CSSProperties}
     >
-      {onEdit ? <><SoundtrackControl soundtrack={project.soundtrack} templateId={templateId} preview /><Body ctx={ctx} /></> : <CountdownGate ctx={ctx}><SoundtrackControl soundtrack={project.soundtrack} templateId={templateId} /><Body ctx={ctx} /></CountdownGate>}
+      {onEdit ? <><SoundtrackControl soundtrack={project.soundtrack} templateId={templateId} preview /><Body ctx={ctx} /><PersonalizationSections ctx={ctx} /></> : <CountdownGate ctx={ctx}><SoundtrackControl soundtrack={project.soundtrack} templateId={templateId} /><Body ctx={ctx} /><PersonalizationSections ctx={ctx} /></CountdownGate>}
     </div>
   );
 }

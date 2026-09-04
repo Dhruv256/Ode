@@ -249,6 +249,20 @@ export interface Memory {
   skipped: boolean;
 }
 
+export type MemoryProminence = "subtle" | "normal" | "prominent";
+
+export interface CustomMemoryBlock {
+  id: string;
+  label: string;
+  value: string;
+  /** A short creator-supplied mark such as “✦”, “01” or “Goa”. */
+  icon?: string;
+  prominence: MemoryProminence;
+}
+
+/** Auto keeps older projects responsive to their collection size. */
+export type PhotoMode = "auto" | "standard" | "high-photo";
+
 /* ── Interests & guests ─────────────────────────────────────────────────── */
 
 export interface Interest {
@@ -321,8 +335,10 @@ export interface BirthdayProject {
   paletteId?: PaletteId;
   customPalette?: string[];
   photos: PhotoAsset[];
+  photoMode?: PhotoMode;
   interests: Interest[];
   memories: Memory[];
+  customMemories?: CustomMemoryBlock[];
   guestMessages: GuestMessage[];
   soundtrack?: SoundtrackAsset;
   publishing: PublishingSettings;
@@ -338,8 +354,10 @@ export const createEmptyProject = (): BirthdayProject => ({
   vibes: { vibes: [] },
   age: null,
   photos: [],
+  photoMode: "auto",
   interests: [],
   memories: [],
+  customMemories: [],
   guestMessages: [],
   publishing: { status: "draft", visibility: "link" },
   furthestStep: "gender",

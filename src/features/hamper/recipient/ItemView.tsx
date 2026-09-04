@@ -4,7 +4,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Dialog } from "../components/Dialog";
 import { HAMPER_ITEM_REGISTRY } from "../config";
 import { ItemIcon } from "../components/ItemIcon";
-import type { HamperItem } from "../types";
+import type { HamperItem, HamperTheme } from "../types";
 import { musicEmbed, videoEmbed } from "../validation";
 import { DrawingPreview } from "../items/DrawingCanvas";
 import { VoicePlayer } from "../items/VoicePlayer";
@@ -19,7 +19,7 @@ export function AssetImage({ item, resolveAsset }: { item: HamperItem; resolveAs
   useEffect(() => { let live = true; if (!url) resolveAsset(item).then(value => { if (live) setUrl(value); }).catch(() => { if (live) setError(true); }); return () => { live = false; }; }, [item, resolveAsset, url]);
   return url && !error ? <img src={url} alt={itemSummary(item)} loading="lazy" onError={() => setError(true)} /> : <ItemIcon type="photo" size={70} />;
 }
-export function ItemView({ item, onClose, resolveAsset, onExternal }: { item: HamperItem; onClose: () => void; resolveAsset: ResolveAsset; onExternal: () => void }) {
+export function ItemView({ item, theme, onClose, resolveAsset, onExternal }: { item: HamperItem; theme: HamperTheme; onClose: () => void; resolveAsset: ResolveAsset; onExternal: () => void }) {
   const reduced = useReducedMotion();
   const [unwrapped, setUnwrapped] = useState(item.type !== "gift"), [url, setUrl] = useState(item.assetUrl), [error, setError] = useState("");
   useEffect(() => {
@@ -42,5 +42,5 @@ export function ItemView({ item, onClose, resolveAsset, onExternal }: { item: Ha
       case "news": return <><p className={styles.eyebrow}>The Ode daily · picked just for you</p><hr /><h3>{item.payload.headline || "Thought you'd like this"}</h3>{item.payload.note && <p>{item.payload.note}</p>}{external(item.payload.url, "Read article")}</>;
     }
   }
-  return <Dialog title={HAMPER_ITEM_REGISTRY[item.type].object} onClose={onClose} kind={item.type}><motion.div className={styles.itemBody} key={String(unwrapped)} initial={reduced ? { opacity: 0 } : { opacity: 0, rotateX: -8, y: 8 }} animate={{ opacity: 1, rotateX: 0, y: 0 }} transition={{ duration: reduced ? .1 : .3 }}>{error ? <p role="alert">{error}</p> : content()}</motion.div></Dialog>;
+  return <Dialog title={HAMPER_ITEM_REGISTRY[item.type].object} onClose={onClose} kind={item.type} theme={theme}><motion.div className={styles.itemBody} key={String(unwrapped)} initial={reduced ? { opacity: 0 } : { opacity: 0, rotateX: -8, y: 8 }} animate={{ opacity: 1, rotateX: 0, y: 0 }} transition={{ duration: reduced ? .1 : .3 }}>{error ? <p role="alert">{error}</p> : content()}</motion.div></Dialog>;
 }

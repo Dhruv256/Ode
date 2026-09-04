@@ -35,4 +35,7 @@ describe("hamper validation", () => {
     expect(() => validateContent({ ...h, items: [] }, true)).toThrow(); expect(() => validateContent({ ...h, recipient: "" }, true)).toThrow();
   });
   it("requires three explicit activations and ignores busy input", () => { let stage = nextOpeningStage(0, false); expect(stage).toBe(1); expect(nextOpeningStage(stage, true)).toBe(1); stage = nextOpeningStage(stage, false); expect(stage).toBe(2); stage = nextOpeningStage(stage, false); expect(stage).toBe(3); expect(nextOpeningStage(stage, false)).toBe(3); });
+  it("accepts the fully art-directed Proper Retro hamper theme", () => {
+    expect(validateContent({ ...fixtureHamper(), theme: "proper-retro" }).theme).toBe("proper-retro");
+  });
 });

@@ -26,6 +26,7 @@ export const HAMPER_THEMES: Record<HamperTheme, { name: string; description: str
   "berry-letter": { name: "Berry Letter", description: "Strawberry ribbons & love-letter pink.", paper: "#fcf3ed", accent: "#a43d50", soft: "#efd0d4", box: "#deabb2", scene: "The bedside table" },
   "buttercup-picnic": { name: "Buttercup Picnic", description: "Butter yellow & a patch of gingham.", paper: "#fff9df", accent: "#59683b", soft: "#dbe1bf", box: "#e3cb78", scene: "The picnic blanket" },
   "cloud-ribbon": { name: "Cloud Ribbon", description: "Blue postage & a ribbon of sky.", paper: "#f1f7f8", accent: "#3c607d", soft: "#d1e0eb", box: "#adc9dc", scene: "The window-side scrapbook" },
+  "proper-retro": { name: "Proper Retro", description: "Postal ephemera, warm print ink & a whole analog world.", paper: "#e8d7b5", accent: "#9d3826", soft: "#d19a45", box: "#a85a32", scene: "The postal-room listening den" },
 };
 export const DRAWING_COLORS = ["#42342c", "#a43d50", "#c88632", "#59683b", "#3c607d", "#946d94"];
 export const RESERVED_SLUGS = new Set(["admin", "api", "dashboard", "create", "login", "sign-in", "sign-up", "settings", "hamper", "website", "www", "new", "edit"]);

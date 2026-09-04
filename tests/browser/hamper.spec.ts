@@ -31,6 +31,21 @@ test("reduced motion still requires three taps and every item opens", async ({ p
     await page.getByRole("button", { name: "Close", exact: true }).click();
   }
 });
+test("Proper Retro is a complete responsive world with ten distinct object shells", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 700 });
+  await page.goto("/qa/hamper?style=scene&theme=proper-retro");
+  await expect(page.locator('[data-theme="proper-retro"]')).toBeVisible();
+  await openBox(page);
+  await noOverflow(page);
+  const signatures = await page.locator("button[data-type]").evaluateAll((nodes) => nodes.map((node) => {
+    const style = getComputedStyle(node);
+    return `${style.backgroundImage}|${style.borderStyle}|${style.borderWidth}|${style.borderRadius}|${style.clipPath}`;
+  }));
+  expect(new Set(signatures).size).toBeGreaterThanOrEqual(8);
+  await page.getByRole("button", { name: /Open coupon:/ }).click();
+  await expect(page.getByRole("dialog")).toHaveAttribute("data-theme", "proper-retro");
+  await noOverflow(page);
+});
 test("creator adds ten types, edits, reorders, previews, and publishes", async ({ page }) => {
   let stored = { ...fixtureHamper(), items: [] as ReturnType<typeof fixtureHamper>["items"] };
   await page.route("**/api/hampers/**", async route => {

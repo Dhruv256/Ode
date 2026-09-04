@@ -1,4 +1,4 @@
-export type HamperTheme = "soft-parcel" | "berry-letter" | "buttercup-picnic" | "cloud-ribbon";
+export type HamperTheme = "soft-parcel" | "berry-letter" | "buttercup-picnic" | "cloud-ribbon" | "proper-retro";
 export type OpeningStyle = "burst" | "scene";
 export type DrawingStroke = { color: string; width: number; points: [number, number][] };
 export type ItemPayloads = {

@@ -7,6 +7,8 @@ import { useProject } from "@/state/projectStore";
 import { MEMORY_QUESTIONS } from "@/lib/questions";
 import { chipLabels } from "@/lib/interests";
 import type { MemoryKey } from "@/lib/types";
+import { uid } from "@/lib/utils";
+import { CUSTOM_MEMORY_LIMIT } from "@/lib/birthdayCapabilities";
 
 /**
  * Step 07 · WORDS — conversational pacing, generous spacing.
@@ -21,6 +23,7 @@ export default function WordsStep({ nav }: { nav: StepNav }) {
   // Keep this form useful rather than letting one stale value blank the step.
   const interests = Array.isArray(project.interests) ? project.interests : [];
   const memories = Array.isArray(project.memories) ? project.memories : [];
+  const customMemories = Array.isArray(project.customMemories) ? project.customMemories : [];
 
   const answerFor = (key: MemoryKey) =>
     memories.find((m) => m.key === key);
@@ -105,6 +108,27 @@ export default function WordsStep({ nav }: { nav: StepNav }) {
             ))}
           </div>
         )}
+      </div>
+
+      <div className="mt-16 border-t border-line pt-10">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h2 className="font-display text-2xl">The details only you would know.</h2>
+            <p className="mt-1 max-w-lg text-sm text-ink-faint">Add inside jokes, code words, tiny habits, or memories. These become real notes and callbacks in the finished site.</p>
+          </div>
+          <button type="button" disabled={customMemories.length >= CUSTOM_MEMORY_LIMIT} onClick={() => dispatch({ type: "addCustomMemory", memory: { id: uid(), label: "Inside joke", value: "", icon: "✦", prominence: "normal" } })} className="min-h-11 border border-ink px-4 font-mono text-[10px] uppercase tracking-widest2 disabled:cursor-not-allowed disabled:opacity-40">+ Add a detail</button>
+        </div>
+        <p className="mt-3 font-mono text-[10px] uppercase tracking-widest2 text-ink-faint">{customMemories.length} / {CUSTOM_MEMORY_LIMIT} custom entries</p>
+        <div className="mt-6 grid gap-4">
+          {customMemories.map((memory, index) => <fieldset key={memory.id} className="grid gap-4 border border-line p-4 sm:grid-cols-[5rem_1fr_10rem]">
+            <legend className="px-2 font-mono text-[9px] uppercase tracking-widest2">Detail {String(index + 1).padStart(2, "0")}</legend>
+            <label className="text-xs text-ink-faint">Mark<input aria-label={`Detail ${index + 1} mark`} value={memory.icon ?? ""} maxLength={12} onChange={(e) => dispatch({ type: "patchCustomMemory", memoryId: memory.id, patch: { icon: e.target.value } })} className="mt-1 w-full border-b border-line bg-transparent pb-2 text-base text-ink" /></label>
+            <label className="text-xs text-ink-faint">Label<input aria-label={`Detail ${index + 1} label`} value={memory.label} maxLength={80} onChange={(e) => dispatch({ type: "patchCustomMemory", memoryId: memory.id, patch: { label: e.target.value } })} className="mt-1 w-full border-b border-line bg-transparent pb-2 text-base text-ink" /></label>
+            <label className="text-xs text-ink-faint">Prominence<select aria-label={`Detail ${index + 1} prominence`} value={memory.prominence} onChange={(e) => dispatch({ type: "patchCustomMemory", memoryId: memory.id, patch: { prominence: e.target.value as "subtle" | "normal" | "prominent" } })} className="mt-1 w-full border-b border-line bg-transparent pb-2 text-sm text-ink"><option value="subtle">Subtle</option><option value="normal">Normal</option><option value="prominent">Prominent</option></select></label>
+            <label className="text-xs text-ink-faint sm:col-span-3">Memory or inside joke<textarea aria-label={`Detail ${index + 1} memory`} value={memory.value} maxLength={600} rows={2} onChange={(e) => dispatch({ type: "patchCustomMemory", memoryId: memory.id, patch: { value: e.target.value } })} placeholder="Quarter life crisis · Bro listen · That Goa plan…" className="mt-1 w-full resize-y border-b border-line bg-transparent pb-2 text-base leading-relaxed text-ink" /></label>
+            <button type="button" onClick={() => dispatch({ type: "removeCustomMemory", memoryId: memory.id })} className="justify-self-start font-mono text-[9px] uppercase tracking-widest2 text-ember sm:col-span-3">Remove detail</button>
+          </fieldset>)}
+        </div>
       </div>
 
       {/* ── Questions — generous spacing, optional, each with Skip ── */}
