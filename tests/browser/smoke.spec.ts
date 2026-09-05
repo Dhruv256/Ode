@@ -53,3 +53,27 @@ test("records a synthetic voice note, pauses, previews and re-records",async({pa
   await page.getByRole("button",{name:"Record a voice note"}).click(); await expect(page.getByRole("button",{name:/Stop · [1-9]/})).toBeVisible(); await page.getByRole("button",{name:/Stop ·/}).click(); await expect(page.getByRole("button",{name:"Play voice note"})).toBeVisible();
   await page.getByRole("button",{name:"Tuck it inside"}).click(); await expect(page.getByRole("listitem")).toHaveCount(1);
 });
+
+test("birthday creator can clear every photo with confirmation",async({page})=>{
+  await page.route("**/api/websites",route=>route.fulfill({json:{id:"photo-clear-qa"}}));
+  await page.goto("/create?new=1");
+  await page.getByRole("button",{name:/For a her/}).click();
+  await page.getByLabel("Their full name").fill("Photo QA");
+  await page.getByRole("button",{name:/Continue → Their World/}).click();
+  await page.getByRole("button",{name:/Main Character/}).click();
+  await page.getByRole("button",{name:/Continue → Style/}).click();
+  await page.getByRole("button",{name:/Use Contact Sheet/}).click();
+  await page.getByRole("button",{name:/Continue → Age/}).click();
+  await page.getByRole("button",{name:/25/}).first().click();
+  await page.getByRole("button",{name:/Continue → Color/}).click();
+  await page.locator("section ul button").first().click();
+  await page.getByRole("button",{name:/Continue → Photos/}).click();
+  const pixel=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aIZ0AAAAASUVORK5CYII=","base64");
+  await page.locator('input[type="file"]').setInputFiles([{name:"one.png",mimeType:"image/png",buffer:pixel},{name:"two.png",mimeType:"image/png",buffer:pixel}]);
+  await expect(page.getByRole("button",{name:"Clear all 2"})).toBeVisible();
+  await page.getByRole("button",{name:"Clear all 2"}).click();
+  const dialog=page.getByRole("alertdialog",{name:"Clear all photos"}); await expect(dialog).toContainText("Remove all 2 photos");
+  await dialog.getByRole("button",{name:"Keep photos"}).click(); await expect(dialog).toHaveCount(0); await expect(page.getByRole("button",{name:"Clear all 2"})).toBeVisible();
+  await page.getByRole("button",{name:"Clear all 2"}).click(); await page.getByRole("button",{name:"Delete all photos"}).click();
+  await expect(page.getByRole("button",{name:/Clear all/})).toHaveCount(0); await expect(page.getByText(/8–12 photos feels intimate/)).toBeVisible();
+});

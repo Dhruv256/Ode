@@ -22,9 +22,18 @@ export default function PhotosStep({ nav }: { nav: StepNav }) {
   const [dragging, setDragging] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState("");
+  const [confirmClear, setConfirmClear] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const selectedMode = project.photoMode ?? "auto";
   const resolvedMode = resolvePhotoMode(project);
+
+  const clearAllPhotos = () => {
+    for (const photo of project.photos) if (photo.previewUrl.startsWith("blob:")) URL.revokeObjectURL(photo.previewUrl);
+    dispatch({ type: "clearPhotos" });
+    setExpandedId(null);
+    setUploadError("");
+    setConfirmClear(false);
+  };
 
   const addFiles = useCallback(
     async (files: FileList | File[]) => {
@@ -35,6 +44,7 @@ export default function PhotosStep({ nav }: { nav: StepNav }) {
         return;
       }
       setUploadError("");
+      setConfirmClear(false);
       const assets: PhotoAsset[] = [];
       let order = project.photos.length;
       for (const file of list) {
@@ -84,10 +94,19 @@ export default function PhotosStep({ nav }: { nav: StepNav }) {
             <small className="mt-1 block font-mono text-[9px] uppercase tracking-wider opacity-65">{detail}</small>
           </button>)}
         </div>
-        <p className="mt-3 font-mono text-[10px] uppercase tracking-widest2 text-ink-faint">
-          Active: {resolvedMode === "high-photo" ? "50+ Photo · every upload is rendered" : "Standard"} · {project.photos.length}/{BIRTHDAY_PHOTO_LIMIT}
-        </p>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+          <p className="font-mono text-[10px] uppercase tracking-widest2 text-ink-faint">
+            Active: {resolvedMode === "high-photo" ? "50+ Photo · every upload is rendered" : "Standard"} · {project.photos.length}/{BIRTHDAY_PHOTO_LIMIT}
+          </p>
+          {project.photos.length > 0 && <button type="button" aria-expanded={confirmClear} onClick={() => setConfirmClear(value => !value)} className="min-h-11 border-b border-ember px-1 font-mono text-[10px] uppercase tracking-widest2 text-ember transition-colors hover:bg-ember hover:px-3 hover:text-paper">Clear all {project.photos.length}</button>}
+        </div>
       </fieldset>
+
+      {confirmClear && project.photos.length > 0 && <motion.div initial={{ opacity:0, y:-4 }} animate={{ opacity:1, y:0 }} role="alertdialog" aria-label="Clear all photos" className="mt-4 flex flex-wrap items-center gap-3 border border-ember bg-paper-deep px-4 py-3">
+        <p className="mr-auto text-sm text-ink-soft">Remove all {project.photos.length} photos from this website? This can&apos;t be undone.</p>
+        <button type="button" onClick={() => setConfirmClear(false)} className="min-h-11 px-3 font-mono text-[10px] uppercase tracking-widest2">Keep photos</button>
+        <button type="button" onClick={clearAllPhotos} className="min-h-11 bg-ember px-4 font-mono text-[10px] uppercase tracking-widest2 text-paper">Delete all photos</button>
+      </motion.div>}
 
       {/* Dropzone */}
       <div

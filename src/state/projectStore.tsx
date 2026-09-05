@@ -77,6 +77,7 @@ type ProjectAction =
       patch: Partial<BirthdayProject["photos"][number]>;
     }
   | { type: "removePhoto"; photoId: string }
+  | { type: "clearPhotos" }
   | { type: "movePhoto"; photoId: string; direction: -1 | 1 }
   | { type: "reorderPhotos"; orderedIds: string[] }
   | { type: "setHeroPhoto"; photoId: string }
@@ -107,7 +108,7 @@ function advanceFurthest(state: BirthdayProject, step: CreatorStepId) {
 
 const MILESTONE_AGE_SET = new Set([16, 18, 21, 22, 25, 50, 100]);
 
-function reducer(state: BirthdayProject, action: ProjectAction): BirthdayProject {
+export function projectReducer(state: BirthdayProject, action: ProjectAction): BirthdayProject {
   switch (action.type) {
     case "hydrate":
       return action.project;
@@ -261,6 +262,9 @@ function reducer(state: BirthdayProject, action: ProjectAction): BirthdayProject
         ),
       });
 
+    case "clearPhotos":
+      return state.photos.length ? touch({ ...state, photos: [] }) : state;
+
     case "removeCustomMemory":
       return touch({
         ...state,
@@ -348,7 +352,7 @@ const ProjectContext = createContext<ProjectContextValue | null>(null);
 
 export function ProjectProvider({ children, projectId, fresh = false, ownerKey = "device" }: { children: React.ReactNode; projectId?: string; fresh?: boolean; ownerKey?: string }) {
   const [project, dispatch] = useReducer(
-    reducer,
+    projectReducer,
     undefined,
     createEmptyProject
   );
