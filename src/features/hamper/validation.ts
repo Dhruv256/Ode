@@ -91,13 +91,16 @@ export function validateItem(value: unknown, position = 0): HamperItem {
   }
   if (definition.media) payload.assetId = string(input.assetId, 36, true);
   if (definition.drawing) payload.strokes = validateStrokes(input.strokes);
+  const visualVariant = string(input.visualVariant, 40);
+  if (visualVariant && !definition.variants.some(variant => variant.id === visualVariant)) throw new ValidationError("Choose an available object appearance.");
+  if (visualVariant) payload.visualVariant = visualVariant;
   return { id, type, position, payload, assetBytes: 0 } as HamperItem;
 }
 export function validateContent(value: unknown, publish = false): HamperContent {
   const h = record(value);
   const recipient = string(h.recipient, 80, publish), sender = string(h.sender, 80, publish), message = string(h.message, 500);
   if (typeof h.theme !== "string" || !Object.hasOwn(HAMPER_THEMES, h.theme) || !["burst", "scene"].includes(String(h.openingStyle))) throw new ValidationError("Choose a wrapping and opening style.");
-  if (!Array.isArray(h.items) || h.items.length > HAMPER_LIMITS.maxItemsPerHamper || publish && !h.items.length) throw new ValidationError("Tuck in between 1 and 30 items before publishing.");
+  if (!Array.isArray(h.items) || h.items.length > HAMPER_LIMITS.maxItemsPerHamper || publish && !h.items.length) throw new ValidationError(`Tuck in between 1 and ${HAMPER_LIMITS.maxItemsPerHamper} items before publishing.`);
   const counts = new Map<ItemType, number>(), ids = new Set<string>();
   const items = h.items.map((value, index) => {
     const item = validateItem(value, index), count = (counts.get(item.type) || 0) + 1;

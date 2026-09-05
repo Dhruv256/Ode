@@ -8,7 +8,8 @@ async function openBox(page: Page) {
     await expect(button).toHaveAttribute("aria-disabled", "false"); await button.click(); await expect(root).toHaveAttribute("data-opening-stage", String(stage));
     if (stage < 3) { await expect(page.getByRole("button", { name: new RegExp(`tap ${stage + 1} of 3`) })).toHaveAttribute("aria-disabled", "false"); await expect(page.getByRole("button", { name: /Open note:/ })).toHaveCount(0); }
   }
-  await expect(page.getByRole("button", { name: /Open note:/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Open note:/ }).first()).toBeVisible();
+  await page.waitForTimeout(1300);
 }
 async function noOverflow(page: Page) { expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true); }
 for (const style of ["burst", "scene"]) {
@@ -37,12 +38,12 @@ test("Proper Retro is a complete responsive world with ten distinct object shell
   await expect(page.locator('[data-theme="proper-retro"]')).toBeVisible();
   await openBox(page);
   await noOverflow(page);
-  const signatures = await page.locator("button[data-type]").evaluateAll((nodes) => nodes.map((node) => {
-    const style = getComputedStyle(node);
-    return `${style.backgroundImage}|${style.borderStyle}|${style.borderWidth}|${style.borderRadius}|${style.clipPath}`;
-  }));
-  expect(new Set(signatures).size).toBeGreaterThanOrEqual(8);
-  await page.getByRole("button", { name: /Open coupon:/ }).click();
+  const objects = page.locator("button[data-type]");
+  const shells = await objects.evaluateAll(nodes => nodes.map(node => { const style = getComputedStyle(node); return { border:style.borderStyle, background:style.backgroundColor, width:node.getBoundingClientRect().width }; }));
+  expect(shells.every(shell => shell.border === "none" && shell.background === "rgba(0, 0, 0, 0)" && shell.width < 180)).toBe(true);
+  await expect(objects.locator("svg title")).toHaveCount(10);
+  expect(new Set(await objects.locator("svg title").allTextContents()).size).toBe(10);
+  await page.getByRole("button", { name: /Open coupon/ }).click();
   await expect(page.getByRole("dialog")).toHaveAttribute("data-theme", "proper-retro");
   await noOverflow(page);
 });
@@ -65,8 +66,9 @@ test("creator adds ten types, edits, reorders, previews, and publishes", async (
   await page.getByRole("button", { name: "Save & continue" }).click();
   await page.getByRole("button", { name: /Buttercup Picnic/ }).click(); await page.getByRole("button", { name: "Save & continue" }).click();
   await page.getByRole("button", { name: /Scene Open into/ }).click(); await page.getByRole("button", { name: "Save & continue" }).click();
-  const textInputs: Record<string, Record<string,string>> = { Note:{ "Your note":"Hello, lovely person." }, Song:{ "Song URL":"https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT" }, Video:{ "YouTube or Vimeo URL":"https://youtu.be/dQw4w9WgXcQ" }, Gift:{ "Gift URL":"https://example.com/gift" }, Location:{ "Place name":"Our cafe", "Google Maps URL":"https://share.google/aGoogleMapsShare123" }, Coupon:{ "Coupon title":"Coffee together" }, News:{ "Article URL":"https://example.com/article" } };
-  for (const label of ["Note","Photo","Song","Video","Voice","Drawing","Gift","Location","Coupon","News"]) {
+  const textInputs: Record<string, Record<string,string>> = { Note:{ "Your note":"Hello, lovely person." }, Song:{ "Song URL":"https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT" }, Video:{ "YouTube or Vimeo URL":"https://youtu.be/dQw4w9WgXcQ" }, Gift:{ "Gift URL":"https://example.com/gift" }, Location:{ "Place name":"Our cafe", "Google Maps URL":"https://share.google/aGoogleMapsShare123" }, "Coupon / Pass":{ "Coupon title":"Coffee together" }, News:{ "Article URL":"https://example.com/article" } };
+  const categoryType: Record<string,string> = { "Coupon / Pass":"coupon" };
+  for (const label of ["Note","Photo","Song","Video","Voice","Drawing","Gift","Location","Coupon / Pass","News"]) {
     await page.getByRole("button", { name: label, exact:true }).click(); const dialog = page.getByRole("dialog");
     for (const [field,value] of Object.entries(textInputs[label] || {})) await dialog.getByLabel(field, { exact:false }).fill(value);
     if (label === "Photo" || label === "Voice") {
@@ -75,7 +77,7 @@ test("creator adds ten types, edits, reorders, previews, and publishes", async (
     }
     if (label === "Drawing") { const box = await dialog.locator("canvas").boundingBox(); await page.mouse.move(box!.x + 30, box!.y + 30); await page.mouse.down(); await page.mouse.move(box!.x + 80, box!.y + 80, { steps:5 }); await page.mouse.up(); }
     await dialog.getByRole("button", { name:"Tuck it inside" }).click(); await expect(dialog).toHaveCount(0); await noOverflow(page);
-    expect(stored.items.map(item => item.type)).toContain(label.toLowerCase());
+    expect(stored.items.map(item => item.type)).toContain(categoryType[label] || label.toLowerCase());
   }
   await expect(page.getByRole("list", { name:"Inside your hamper" }).locator("li")).toHaveCount(10);
   await page.getByRole("listitem").first().getByRole("button", { name:"Edit",exact:true }).click(); await page.getByLabel("Your note").fill("Edited with love."); await page.getByRole("button", { name:"Keep these changes" }).click();
@@ -89,6 +91,20 @@ test("creator adds ten types, edits, reorders, previews, and publishes", async (
   await page.getByRole("button", { name:"Replay opening" }).click(); await expect(page.locator("[data-opening-stage]")).toHaveAttribute("data-opening-stage","0");
   await page.getByRole("button", { name:"Wrap it up",exact:false }).click(); await page.getByRole("button", { name:"Publish hamper",exact:true }).click();
   await expect(page.getByRole("heading", { name:"Ready for Avery" })).toBeVisible(); expect(stored.items).toHaveLength(10); expect(stored.status).toBe("published");
+});
+
+test("46-item hamper stays borderless, accessible, and collision-free at 390px", async ({ page }) => {
+  await page.setViewportSize({ width:390, height:844 }); await page.goto("/qa/hamper?case=46&style=scene&theme=proper-retro"); await openBox(page); await noOverflow(page);
+  const objects = page.locator("button[data-type]"); await expect(objects).toHaveCount(46);
+  const boxes = (await objects.evaluateAll(nodes => nodes.map(node => { const r=node.getBoundingClientRect(); return { l:r.left,r:r.right,t:r.top,b:r.bottom,w:r.width,h:r.height,border:getComputedStyle(node).borderStyle }; }))).filter(box => box.w && box.h);
+  expect(boxes.every(box => box.w >= 44 && box.l >= 0 && box.r <= 390 && box.border === "none")).toBe(true);
+  for (let i=0;i<boxes.length;i++) for (let j=i+1;j<boxes.length;j++) expect(Math.max(0,Math.min(boxes[i].r,boxes[j].r)-Math.max(boxes[i].l,boxes[j].l))*Math.max(0,Math.min(boxes[i].b,boxes[j].b)-Math.max(boxes[i].t,boxes[j].t))).toBe(0);
+});
+
+test("ten notes cycle through physical variants without merging", async ({ page }) => {
+  await page.goto("/qa/hamper?case=10-notes"); await openBox(page);
+  const notes=page.locator('button[data-type="note"]'); await expect(notes).toHaveCount(10);
+  expect(new Set(await notes.locator('[data-variant]').evaluateAll(nodes => nodes.map(node => node.getAttribute('data-variant')))).size).toBeGreaterThanOrEqual(4);
 });
 
 test("item saves immediately and a failed save keeps the editor and input for retry", async ({ page }) => {

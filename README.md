@@ -2,7 +2,7 @@
 
 > **Studio update:** multiple account-owned birthday websites and Digital Hampers
 > are implemented. See [DIGITAL_HAMPERS.md](DIGITAL_HAMPERS.md) for routes,
-> migrations 003/004/005, new environment variables, storage/PIN design and testing.
+> migrations 003/004/005/006, new environment variables, storage/PIN design and testing.
 > The older prototype setup notes below describe the original birthday feature;
 > cloud writes now require Clerk authentication.
 
@@ -62,7 +62,8 @@ Apply migration 003 to add Clerk ownership and RLS while preserving existing
 rows and links. Cloud writes require a signed-in creator; the old write token
 can recover an unclaimed legacy website into that account. Apply migration 004
 for Digital Hampers and its private media bucket. Existing installations must
-also apply migration 005 to enable the Proper Retro hamper theme. See
+also apply migration 005 to enable the Proper Retro hamper theme and migration
+006 to install the 10-per-type / 60-total object limits. See
 [DIGITAL_HAMPERS.md](DIGITAL_HAMPERS.md).
 
 ## Product flow

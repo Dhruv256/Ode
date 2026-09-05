@@ -30,12 +30,21 @@ describe("hamper validation", () => {
   });
   it.each(ITEM_TYPES)("enforces %s count", type => { const h = fixtureHamper(); h.items = Array.from({ length: HAMPER_ITEM_REGISTRY[type].max + 1 }, (_, i) => fixtureItem(type, i)); expect(() => validateContent(h)).toThrow("hold up to"); });
   it("enforces total count, unique IDs, and required published content", () => {
-    const h = fixtureHamper(); expect(() => validateContent({ ...h, items: Array(31).fill(h.items[0]) })).toThrow();
+    const h = fixtureHamper(); expect(() => validateContent({ ...h, items: Array(61).fill(h.items[0]) })).toThrow();
     expect(() => validateContent({ ...h, items: [h.items[0], h.items[0]] })).toThrow("own ID");
     expect(() => validateContent({ ...h, items: [] }, true)).toThrow(); expect(() => validateContent({ ...h, recipient: "" }, true)).toThrow();
   });
   it("requires three explicit activations and ignores busy input", () => { let stage = nextOpeningStage(0, false); expect(stage).toBe(1); expect(nextOpeningStage(stage, true)).toBe(1); stage = nextOpeningStage(stage, false); expect(stage).toBe(2); stage = nextOpeningStage(stage, false); expect(stage).toBe(3); expect(nextOpeningStage(stage, false)).toBe(3); });
   it("accepts the fully art-directed Proper Retro hamper theme", () => {
     expect(validateContent({ ...fixtureHamper(), theme: "proper-retro" }).theme).toBe("proper-retro");
+  });
+  it("uses one 10-per-type and 60-total rule", () => {
+    expect(HAMPER_LIMITS.maxItemsPerType).toBe(10); expect(HAMPER_LIMITS.maxItemsPerHamper).toBe(60);
+    expect(new Set(ITEM_TYPES.map(type => HAMPER_ITEM_REGISTRY[type].max))).toEqual(new Set([10]));
+  });
+  it("keeps valid visual variants and rejects invented ones", () => {
+    const item = fixtureItem("note"); item.payload.visualVariant = "postcard";
+    expect(validateItem(item).payload.visualVariant).toBe("postcard");
+    item.payload.visualVariant = "giant-dashboard-card"; expect(() => validateItem(item)).toThrow("appearance");
   });
 });

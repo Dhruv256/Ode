@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Dialog } from "../components/Dialog";
 import { HAMPER_ITEM_REGISTRY } from "../config";
 import { ItemIcon } from "../components/ItemIcon";
+import { ItemObject } from "../components/ItemObject";
 import type { HamperItem, HamperTheme } from "../types";
 import { musicEmbed, videoEmbed } from "../validation";
 import { DrawingPreview } from "../items/DrawingCanvas";
@@ -36,7 +37,7 @@ export function ItemView({ item, theme, onClose, resolveAsset, onExternal }: { i
       case "video": return <><iframe className={styles.embed} src={videoEmbed(item.payload.url)} title={item.payload.caption || "A video for you"} allow="encrypted-media; picture-in-picture; fullscreen" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" />{item.payload.caption && <p>{item.payload.caption}</p>}{external(item.payload.url, "Open video")}</>;
       case "voice": return <><h3>{item.payload.title || "A familiar voice"}</h3>{url ? <VoicePlayer src={url} /> : <p>Finding your voice note…</p>}</>;
       case "drawing": return <><DrawingPreview strokes={item.payload.strokes} />{item.payload.caption && <p>{item.payload.caption}</p>}</>;
-      case "gift": return unwrapped ? <><h3>A little something for you</h3>{item.payload.note && <p>{item.payload.note}</p>}{external(item.payload.url, "Open gift")}</> : <button type="button" className={styles.object} data-type="gift" onClick={() => setUnwrapped(true)}><ItemIcon type="gift" size={80} /><strong>Pull the ribbon</strong><small>Unwrap your gift</small></button>;
+      case "gift": return unwrapped ? <><h3>A little something for you</h3>{item.payload.note && <p>{item.payload.note}</p>}{external(item.payload.url, "Open gift")}</> : <button type="button" className={styles.unwrapObject} data-type="gift" onClick={() => setUnwrapped(true)}><ItemObject type="gift" variant={item.payload.visualVariant} /><strong>Pull the ribbon</strong><small>Unwrap your gift</small></button>;
       case "location": return <><ItemIcon type="location" size={64} /><h3>{item.payload.place}</h3>{item.payload.note && <p>{item.payload.note}</p>}{external(item.payload.url, "Open in Maps")}</>;
       case "coupon": return <><p className={styles.eyebrow}>A promise to keep</p><h3>{item.payload.title}</h3>{item.payload.description && <p>{item.payload.description}</p>}{item.payload.code && <code>{item.payload.code}</code>}{item.payload.expiry && <p>Good until {item.payload.expiry}</p>}{external(item.payload.url, "Use coupon")}</>;
       case "news": return <><p className={styles.eyebrow}>The Ode daily · picked just for you</p><hr /><h3>{item.payload.headline || "Thought you'd like this"}</h3>{item.payload.note && <p>{item.payload.note}</p>}{external(item.payload.url, "Read article")}</>;

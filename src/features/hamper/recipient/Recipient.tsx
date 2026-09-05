@@ -3,9 +3,8 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { EventType, HamperContent, HamperItem } from "../types";
 import { HAMPER_ITEM_REGISTRY, HAMPER_THEMES } from "../config";
-import { ItemIcon } from "../components/ItemIcon";
-import { AssetImage, ItemView, itemSummary, type ResolveAsset } from "./ItemView";
-import { DrawingPreview } from "../items/DrawingCanvas";
+import { ItemObject } from "../components/ItemObject";
+import { ItemView, itemSummary, type ResolveAsset } from "./ItemView";
 import { nextOpeningStage, type OpeningStage } from "./opening";
 import styles from "../hamper.module.css";
 export function themeStyle(theme: HamperContent["theme"]): CSSProperties {
@@ -15,9 +14,8 @@ export function themeStyle(theme: HamperContent["theme"]): CSSProperties {
 export function Recipient({ content, resolveAsset, onEvent }: { content: HamperContent; resolveAsset: ResolveAsset; onEvent?: (event: EventType, itemId?: string) => void }) {
   const [openingStage, setOpeningStage] = useState<OpeningStage>(0), [busy, setBusy] = useState(false), [opened, setOpened] = useState(false), [selected, setSelected] = useState<HamperItem | null>(null);
   const stageRef = useRef<OpeningStage>(0), busyRef = useRef(false), timer = useRef<ReturnType<typeof setTimeout>>(), heading = useRef<HTMLHeadingElement>(null), root = useRef<HTMLDivElement>(null);
-  const [columns, setColumns] = useState(4);
   const reduced = useReducedMotion(), theme = HAMPER_THEMES[content.theme];
-  useEffect(() => { const observer = new ResizeObserver(entries => { const width = entries[0].contentRect.width; setColumns(width <= 650 ? 2 : content.openingStyle === "scene" ? 3 : 4); }); if (root.current) observer.observe(root.current); return () => { observer.disconnect(); clearTimeout(timer.current); }; }, [content.openingStyle]);
+  useEffect(() => () => clearTimeout(timer.current), []);
   useEffect(() => { if (opened) heading.current?.focus({ preventScroll: true }); }, [opened]);
   function tap() {
     const next = nextOpeningStage(stageRef.current, busyRef.current);
@@ -46,15 +44,15 @@ export function Recipient({ content, resolveAsset, onEvent }: { content: HamperC
         <div className={content.openingStyle === "scene" ? styles.scene : undefined} data-theme={content.theme}>
           {content.openingStyle === "scene" && <p className={styles.sceneLabel}>{theme.scene} / a place for your little things</p>}
           <div className={styles.composition}>
-            {content.items.map((item, i) => <motion.div key={item.id}
-              initial={reduced || i >= 10 ? { opacity: 0 } : content.openingStyle === "burst" ? { opacity: 0, x: ((columns - 1) / 2 - i % columns) * 95, y: -100 - Math.floor(i / columns) * 40, scale: .2, rotate: (i % 2 ? 1 : -1) * 14 } : { opacity: 0, y: 22 }}
+            {content.items.map((item, i) => { const instanceIndex = content.items.slice(0, i).filter(candidate => candidate.type === item.type).length; return <motion.div key={item.id} className={styles.objectSlot} data-type={item.type}
+              initial={reduced || i >= 12 ? { opacity: 0 } : content.openingStyle === "burst" ? { opacity: 0, x: ((i % 5) - 2) * 62, y: -90 - (i % 3) * 34, scale: .28, rotate: (i % 2 ? 1 : -1) * 14 } : { opacity: 0, y: 22 }}
               animate={{ opacity: 1, x: 0, y: 0, scale: 1, rotate: reduced ? 0 : [-2, 2, -1, 1][i % 4] }}
-              transition={{ duration: reduced ? .1 : content.openingStyle === "burst" ? .7 : .55, delay: reduced ? 0 : Math.min(i, 10) * .06, ease: [.18, .7, .25, 1] }}>
-              <button type="button" className={styles.object} data-type={item.type} aria-label={`Open ${HAMPER_ITEM_REGISTRY[item.type].label.toLowerCase()}: ${itemSummary(item)}`} onClick={() => { setSelected(item); onEvent?.("item_opened", item.id); }}>
-                {item.type === "photo" ? <AssetImage item={item} resolveAsset={resolveAsset} /> : item.type === "drawing" ? <DrawingPreview strokes={item.payload.strokes} /> : <ItemIcon type={item.type} size={62} />}
-                <strong>{itemSummary(item)}</strong><small>{HAMPER_ITEM_REGISTRY[item.type].object}</small>
+              transition={{ duration: reduced ? .1 : content.openingStyle === "burst" ? .7 : .55, delay: reduced ? 0 : Math.min(i, 12) * .045, ease: [.18, .7, .25, 1] }}>
+              <button type="button" className={styles.objectTrigger} data-type={item.type} aria-label={`Open ${HAMPER_ITEM_REGISTRY[item.type].label.toLowerCase()}: ${itemSummary(item)}`} onClick={() => { setSelected(item); onEvent?.("item_opened", item.id); }}>
+                <ItemObject type={item.type} variant={item.payload.visualVariant} instanceIndex={instanceIndex} theme={content.theme} />
+                <span className={styles.objectLabel}>{HAMPER_ITEM_REGISTRY[item.type].label}</span><small className={styles.objectCue}>open</small>
               </button>
-            </motion.div>)}
+            </motion.div>; })}
           </div>
         </div>
         {!content.items.length && <p className={styles.tapHint}>Your keepsakes will be waiting here.</p>}

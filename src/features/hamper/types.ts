@@ -1,17 +1,18 @@
 export type HamperTheme = "soft-parcel" | "berry-letter" | "buttercup-picnic" | "cloud-ribbon" | "proper-retro";
 export type OpeningStyle = "burst" | "scene";
 export type DrawingStroke = { color: string; width: number; points: [number, number][] };
+export type VisualTreatment = { visualVariant?: string };
 export type ItemPayloads = {
-  note: { title?: string; body: string };
-  photo: { caption?: string; assetId: string };
-  song: { title?: string; url: string };
-  video: { caption?: string; url: string };
-  voice: { title?: string; assetId: string };
-  drawing: { caption?: string; strokes: DrawingStroke[] };
-  gift: { note?: string; url: string };
-  location: { place: string; note?: string; url?: string };
-  coupon: { title: string; description?: string; code?: string; url?: string; expiry?: string };
-  news: { headline?: string; note?: string; url: string };
+  note: { title?: string; body: string } & VisualTreatment;
+  photo: { caption?: string; assetId: string } & VisualTreatment;
+  song: { title?: string; url: string } & VisualTreatment;
+  video: { caption?: string; url: string } & VisualTreatment;
+  voice: { title?: string; assetId: string } & VisualTreatment;
+  drawing: { caption?: string; strokes: DrawingStroke[] } & VisualTreatment;
+  gift: { note?: string; url: string } & VisualTreatment;
+  location: { place: string; note?: string; url?: string } & VisualTreatment;
+  coupon: { title: string; description?: string; code?: string; url?: string; expiry?: string } & VisualTreatment;
+  news: { headline?: string; note?: string; url: string } & VisualTreatment;
 };
 export type ItemType = keyof ItemPayloads;
 export type HamperItem = { [K in ItemType]: { id: string; type: K; position: number; payload: ItemPayloads[K]; assetBytes: number; assetUrl?: string } }[ItemType];

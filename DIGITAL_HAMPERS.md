@@ -9,7 +9,7 @@ The production application remains the Next.js 14 / React 18 app at the reposito
 - `/create?new=1`: a separate birthday project; `/create?project=<id>`: reopen that project; `&preview=1`: the existing birthday preview.
 - `/dashboard/hamper`, `/dashboard/hamper/new`, `/dashboard/hamper/[id]/edit`: hamper list and seven-stage builder.
 - `/hamper/[slug]`: public, unlisted recipient experience; no account required.
-- Four centrally configured themes, all ten item types, touch/keyboard arrangement, desktop/mobile preview, exactly three deliberate package activations, Burst and Scene, reduced motion, native modal focus management, and lazy media/embeds.
+- Five centrally configured themes, all ten canonical item types, compact illustrated object variants, touch/keyboard arrangement, desktop/mobile preview, exactly three deliberate package activations, Burst and Scene, reduced motion, native modal focus management, and lazy media/embeds.
 - Private uploads, quotas, signed asset delivery, PINs, link creation/revocation/replacement, independent duplication, confirmed deletion and durable storage cleanup.
 - Dedupe-limited views, openings, item activity and outbound link analytics. Preview does not emit recipient events.
 - Item editor confirmation saves immediately to the server. A failed save keeps the editor and entered content available for retry; other builder fields retain the explicit Save / Save & continue controls.
@@ -20,16 +20,18 @@ Use the existing SQL migration workflow, in order:
 
 1. `database/migrations/003_studio_ownership.sql`
 2. `database/migrations/004_digital_hampers.sql`
+3. `database/migrations/005_proper_retro_hamper.sql`
+4. `database/migrations/006_hamper_object_limits.sql`
 
 Migrations 001 and 002 remain prerequisites on a new database. Migration 003 adds a canonical birthday project ID and optional Clerk owner ID; it does not delete records, change public slugs or replace JSON content. The existing schema has no one-project-per-owner constraint. Legacy records remain public at their original links and can be attached to an account only with their original write token. A creator without that token cannot claim an old site by guessing its slug.
 
-Migration 004 creates `digital_hampers`, `hamper_items`, `hamper_assets`, `hamper_share_links`, `hamper_events`, `hamper_access_attempts`, and `hamper_storage_cleanup`; all use RLS with browser-role access revoked. The server uses the existing pooled PostgreSQL connection and derives owners from Clerk. No separate Supabase Auth identity is introduced.
+Migration 004 creates `digital_hampers`, `hamper_items`, `hamper_assets`, `hamper_share_links`, `hamper_events`, `hamper_access_attempts`, and `hamper_storage_cleanup`; all use RLS with browser-role access revoked. Migration 005 adds Proper Retro to the theme constraint. Migration 006 upgrades existing installs to 10 items for every content type and 60 total by replacing the existing quota function and position constraint, without creating a second trigger. The server uses the existing pooled PostgreSQL connection and derives owners from Clerk. No separate Supabase Auth identity is introduced.
 
 Migration 004 is safe to rerun against the current schema, including populated tables. Existing hampers, items, PIN hashes and share links are preserved; indexes, functions, triggers and the storage policy are installed without duplicate-object errors. An incompatible older schema fails with a repair instruction before any schema changes. If an old copy reports `42P07: relation "digital_hampers" already exists`, use the updated file or check the schema with `npm run db:studio -- --check`; do not delete tables to rerun it.
 
 The migration also creates **private** `ode-hamper-assets`, with a 5 MB bucket cap and allowed MIME types, and a restrictive policy shielding that bucket from broader browser storage policies. The existing public `birthday-media` bucket is unchanged. No manual table or bucket creation is necessary.
 
-New code expects both migrations; apply them to each deployment database before application traffic reaches these routes. The connected database was repaired on 3 September 2026 using the command below, preserving its three existing birthday sites and installing the current hamper schema. Other deployment databases still need their own migration checks.
+New code expects all four migrations; apply them to each deployment database before application traffic reaches these routes. The connected database was repaired on 3 September 2026 using the command below, preserving its three existing birthday sites and installing the current hamper schema. Other deployment databases still need their own migration checks.
 
 ### Repair an earlier manually created hamper schema
 
@@ -47,7 +49,7 @@ It applies migration 003 and installs migration 004 where needed. When all five 
 
 `--verify` exercises website listing, draft creation, links, item saves, events, rate limits and upload reservations against the connected database inside a transaction that is always rolled back. It does not upload media or leave sample hampers behind. The repair implementation is in `scripts/repair-studio-schema.mjs` and `scripts/lib/studio-schema.mjs`; eight regression tests in `tests/studioSchema.test.ts` cover the two reported failures, content preservation, refusal to move populated tables, retry behavior, rollback on a late failure, and repeated migration runs with existing content and enforced access controls/quotas.
 
-The connected-database repair and rolled-back live verification both passed. All 71 unit/database tests, typecheck, lint and the production build pass after the repair changes. Server error logs now include only PostgreSQL error codes and schema identifiers (table/column/constraint), excluding private failing-row details.
+The connected-database repair and rolled-back live verification both passed. The current suite passes 98 unit/database tests and 26 Digital Hamper browser tests, plus typecheck, lint and the production build. Server error logs include only PostgreSQL error codes and schema identifiers (table/column/constraint), excluding private failing-row details.
 
 On Windows, a running dev server can hold `.next/trace` open. Set `ODE_ISOLATED_BUILD=true` when running `npm run build` to verify production output in the ignored `.next-build` directory without stopping that server. Normal builds and development continue to use `.next`. Use the same environment flag with `npm start` only when intentionally serving that isolated output.
 
@@ -79,7 +81,7 @@ The storage adapter now rejects placeholder configuration clearly and reads Supa
 - Source photos: JPEG/PNG/WebP, maximum 5 MB; client compression to WebP and a maximum 1800-pixel edge when supported. Audio: maximum 2 MB. Videos are links only.
 - Photos reserve the bucket's 5 MB maximum before the server issues a Supabase upload URL. Finalization reads actual object size/type from Supabase. Voice uploads pass through a bounded 2 MB server endpoint so a photo-sized signed upload cannot bypass the smaller audio cap. Reserved photo capacity counts toward both quotas. Near a quota boundary, a small photo can require freeing a little additional space until the reservation is finalized.
 - Storage paths are generated server-side as `clerkUserId/hamperId/itemId/randomAssetId`. Client-provided paths and byte counters are never authoritative.
-- Database constraints and transactional locks enforce 10 hampers, 30 items, per-type limits, 25 MB per hamper and 200 MB per account. Duplication copies logical media to separate paths.
+- Database constraints and transactional locks enforce 10 hampers, 60 items per hamper, one 10-item limit for every canonical content type, 25 MB per hamper and 200 MB per account. The larger item count does not increase either storage quota. Duplication copies logical media to separate paths.
 - PINs use salted Node scrypt. Incorrect attempts are limited in PostgreSQL to five per hamper/client window of 15 minutes. Successful unlock grants a signed, HttpOnly, SameSite cookie. Changing/removing the PIN invalidates existing grants. PIN item data is withheld until authorization succeeds.
 - Revoking a link prevents new page/API access immediately. Previously issued asset URLs can remain valid for up to 15 minutes, and recipients can keep content already downloaded.
 - Public routes use explicit DTOs, no-index robots directives, no-store caching and a no-referrer policy. Embeds load only after the corresponding item opens. No arbitrary backend URL crawling, maps API, music upload or payment service is used.

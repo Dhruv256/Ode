@@ -27,7 +27,7 @@ export function ItemEditor({ hamperId, type, item, onSave, onClose }: { hamperId
       <div className={styles.form}>{definition.fields.map(f => <label className={styles.field} key={f.key}>{f.label}{f.required ? " *" : ""}
         {f.multiline ? <textarea required={f.required} maxLength={f.max} value={String(payload[f.key] || "")} onChange={e => change(f.key, e.target.value)} /> : <input type={f.kind || "text"} required={f.required} maxLength={f.max} value={String(payload[f.key] || "")} onChange={e => change(f.key, e.target.value)} />}
         {f.multiline && <small>{String(payload[f.key] || "").length} / {f.max}</small>}
-      </label>)}</div>
+      </label>)}<label className={styles.field}>Appearance<select value={String(payload.visualVariant || "auto")} onChange={e => change("visualVariant", e.target.value === "auto" ? undefined : e.target.value)}><option value="auto">Auto — chosen for this hamper</option>{definition.variants.map(variant => <option key={variant.id} value={variant.id}>{variant.label}</option>)}</select><small>Auto varies repeated objects so the hamper feels collected.</small></label></div>
       {error && <p role="alert" className={styles.notice}>{error}</p>}
       <div className={styles.actions}><button type="submit" className={styles.button} disabled={busy || saving}>{saving ? "Saving keepsake…" : item ? "Keep these changes" : "Tuck it inside"}</button><button type="button" className={styles.quietButton} disabled={saving} onClick={close}>Cancel</button></div>
       </fieldset>
