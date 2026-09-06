@@ -53,7 +53,7 @@
 .tp-book-viewport {height:clamp(26rem,75svh,48rem);overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;}
 .tp-reading-copy {margin-top:2rem;border-top:1px solid var(--tp-line);padding-top:1rem;}
 .tp-reading-copy summary {min-height:44px;cursor:pointer;font:500 12px/1.5 var(--tp-mono);}
-.tp-dev-qa {position:fixed;bottom:.5rem;left:.5rem;max-width:18rem;max-height:40svh;overflow:auto;z-index:150;padding:.5rem;background:#111;color:#fff;font:11px/1.5 monospace;}
+.tp-dev-qa {position:fixed;bottom:.5rem;right:.5rem;max-width:18rem;max-height:40svh;overflow:auto;z-index:150;padding:.5rem;background:#111;color:#fff;font:11px/1.5 monospace;}
 .tp-dev-qa summary {cursor:pointer;min-height:24px;}
 .tp-interest-heading h2 em,.tp-custom-memories h2 em,.tp-high-photo h2 em,.tp-interest-cards article>b {color:var(--tp-accent-ink);}
 .birthday-template[data-template="contact-sheet"] .tp-personalization,
