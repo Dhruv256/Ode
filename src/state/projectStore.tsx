@@ -25,6 +25,7 @@ import {
 } from "@/lib/types";
 import { uid } from "@/lib/utils";
 import { activeLocalWebsite, localWebsites, saveLocalWebsite } from "@/lib/localWebsites";
+import { readLocalMedia } from "@/lib/localMedia";
 
 /**
  * ─────────────────────────────────────────────────────────────────────────────
@@ -201,7 +202,10 @@ export function projectReducer(state: BirthdayProject, action: ProjectAction): B
 
     case "reorderPhotos": {
       const byId = new Map(state.photos.map((p) => [p.id, p]));
-      const photos = action.orderedIds
+      const orderedIds = Array.from(new Set(action.orderedIds));
+      // Partial/stale drag lists must never remove uploads.
+      orderedIds.push(...state.photos.filter(p=>!orderedIds.includes(p.id)).map(p=>p.id));
+      const photos = orderedIds
         .map((id) => byId.get(id))
         .filter(Boolean)
         .map(
@@ -373,8 +377,20 @@ export function ProjectProvider({ children, projectId, fresh = false, ownerKey =
           if (!response.ok && !cached) throw new Error(result.error || "This website could not be opened.");
           stored = cached && (!result.project || cached.updatedAt > result.project.updatedAt) ? cached : result.project;
         }
+        if (stored) {
+          const restored = stored;
+          restored.photos = await Promise.all(restored.photos.map(async photo=>{
+            if(!photo.previewUrl.startsWith("blob:"))return photo;
+            const blob=await readLocalMedia(restored.id,photo.id);
+            return {...photo,previewUrl:blob?URL.createObjectURL(blob):photo.previewUrl,needsRelink:!blob};
+          }));
+          if(restored.soundtrack?.previewUrl.startsWith("blob:")){
+            const blob=await readLocalMedia(restored.id,"soundtrack");
+            restored.soundtrack={...restored.soundtrack,previewUrl:blob?URL.createObjectURL(blob):restored.soundtrack.previewUrl,needsRelink:!blob};
+          }
+        }
         if (!cancelled) {
-          if (stored) dispatch({ type: "hydrate", project: { ...stored, photos: stored.photos.map(p => ({ ...p, needsRelink: p.previewUrl.startsWith("blob:") || p.needsRelink })) } });
+          if (stored) dispatch({ type: "hydrate", project: stored });
           setHydrated(true);
         }
       } catch (error) { if (!cancelled) setSyncError(error instanceof Error ? error.message : "Unable to restore your website."); }

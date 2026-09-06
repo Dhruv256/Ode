@@ -1,8 +1,15 @@
 "use client";
 
 import type { RenderCtx } from "./types";
+import { useState } from "react";
+import type { PhotoAsset } from "@/lib/types";
 import { Photo } from "./photo";
-import { highPhotoArchive, resolvePhotoMode, validatePhotoUsage } from "@/lib/birthdayCapabilities";
+import { highPhotoArchive, resolvePhotoMode } from "@/lib/birthdayCapabilities";
+import { chronologicalPhotos, LIFE_STAGES, photoStage } from "@/lib/photoIntelligence";
+import { TEMPLATE_FRAMES } from "./frames";
+import { nativeMemoryKeys } from "./inputContract";
+import { VIBE_MODIFIERS } from "./motion";
+import { PhotoViewer } from "./PhotoViewer";
 
 const INTEREST_LANGUAGE: Record<string, { mark: string; eyebrow: string; line: string }> = {
   gaming: { mark: "LVL", eyebrow: "player one energy", line: "Every great story deserves one more level." },
@@ -35,9 +42,9 @@ function InterestChapter({ ctx }: { ctx: RenderCtx }) {
       <div className="tp-interest-index">{ctx.interests.map((interest) => <span key={interest}>{interest}</span>)}</div>
     </div>
     <div className="tp-interest-cards">
-      {ctx.interests.slice(0, 4).map((interest, index) => { const language = interestLanguage(interest); return <article key={interest} data-interest={interest.replace(/[^a-z0-9]+/g, "-")}>
+      {ctx.interests.map((interest, index) => { const language = interestLanguage(interest); return <article key={interest} data-interest={interest.replace(/[^a-z0-9]+/g, "-")}>
         <b aria-hidden>{language.mark}</b>
-        <p>{String(index + 1).padStart(2, "0")} · {language.eyebrow}</p>
+        <p>{interest} · {language.eyebrow}</p>
         <h3>{language.line}</h3>
       </article>; })}
     </div>
@@ -58,25 +65,40 @@ function CustomMemoryChapter({ ctx }: { ctx: RenderCtx }) {
 }
 
 function HighPhotoChapter({ ctx }: { ctx: RenderCtx }) {
-  if (resolvePhotoMode(ctx.project) !== "high-photo") return null;
-  const photos = highPhotoArchive(ctx.photos);
-  const usage = validatePhotoUsage(ctx.photos, photos.map((photo) => photo.id));
-  return <section className="tp-high-photo" data-experience-chapter data-photo-usage-valid={usage.valid} aria-label={`Complete archive of ${photos.length} photos`}>
-    <header><p>THE COMPLETE ARCHIVE · {usage.renderedCount}/{usage.uploadedCount} ASSIGNED</p><h2>Not one memory<br /><em>left behind.</em></h2></header>
+  const [selected,setSelected]=useState<PhotoAsset|null>(null);
+  if (!ctx.photos.length) return null;
+  const photos = ["archive","cinema","yearbook"].includes(ctx.id) ? chronologicalPhotos(ctx.photos) : highPhotoArchive(ctx.photos);
+  return <section className="tp-high-photo" data-experience-chapter aria-label={`Complete archive of ${photos.length} photos`}>
+    <details open={resolvePhotoMode(ctx.project)==="high-photo"} className="tp-collection">
+    <summary><span>THE COMPLETE COLLECTION</span><h2>All {photos.length} moments.<br /><em>Every one belongs.</em></h2><p>Open the collection · tap any photo to see the whole frame</p></summary>
     <div className="tp-high-photo-grid">{photos.map((photo, index) => <div key={photo.id} data-photo-slot={index + 1}>
-      <Photo photo={photo} treatment={ctx.treatment} aspect="aspect-[4/5] w-full" footprint="unbounded" captionFallback={`memory ${index + 1}`} />
-      <small>{String(index + 1).padStart(2, "0")} / {String(photos.length).padStart(2, "0")}</small>
+      <button type="button" onClick={()=>setSelected(photo)} aria-label={`Open photo ${index+1}${photo.caption?`: ${photo.caption}`:""}`}>
+        <Photo photo={photo} treatment="none" ratio={TEMPLATE_FRAMES[ctx.id].collection} aspect="w-full" footprint="unbounded" showCaption={false} />
+      </button>
+      <small>{String(index + 1).padStart(2, "0")} · {photo.caption || "A moment kept"}</small>
+      {(photo.location||photo.dateTaken||photoStage(photo)!=="unknown")&&<small>{[photo.location,photo.dateTaken,photoStage(photo)!=="unknown"?LIFE_STAGES[photoStage(photo)]:undefined].filter(Boolean).join(" · ")}</small>}
     </div>)}</div>
+    </details>
+    {selected&&<PhotoViewer photo={selected} onClose={()=>setSelected(null)}/>}
   </section>;
 }
 
 export function PersonalizationSections({ ctx }: { ctx: RenderCtx }) {
-  const hasExtra = ctx.interests.length || (ctx.project.customMemories?.length ?? 0) || resolvePhotoMode(ctx.project) === "high-photo";
-  if (!hasExtra) return null;
+  const native=nativeMemoryKeys(ctx.project,ctx.id);
+  const notes=ctx.project.memories.filter(memory=>!memory.skipped&&memory.answer.trim()&&!native.has(memory.key));
+  const labels:Record<string,string>={"one-sentence":"In a sentence","three-words":"Three words","things-they-love":"Their kind of happiness","favorite-place":"Somewhere special","favorite-song":"On repeat","favorite-movie":"Now showing","inside-joke":"You had to be there","always-says":"In their words","current-obsession":"Lately","known-for":"Unmistakably them","unforgettable-memory":"Keep this memory","birthday-message":"A birthday letter","ending-line":"Until next time"};
+  const relationship=ctx.project.person.relationship?.replaceAll("-"," ");
+  const dedication=relationship&&relationship!=="other"?`For my ${relationship}`:ctx.project.person.gender==="female"?"For the birthday girl":ctx.project.person.gender==="male"?"For the birthday boy":"Made for you";
   return <aside className="tp-personalization" data-template-voice={ctx.id}>
+    <section className="tp-personal-notes" aria-label="Personal dedication">
+      <header><p>{dedication} · {ctx.age ?? "another"} years of being you</p><h2>{ctx.fullName}</h2><p>{[ctx.project.person.nickname,ctx.project.person.pronouns,ctx.project.birthdayDate].filter(Boolean).join(" · ")}</p></header>
+      <div className="tp-vibe-imprint">{ctx.project.vibes.vibes.map(vibe=><span key={vibe} data-vibe-mark={vibe}>{VIBE_MODIFIERS[vibe]?.accent}</span>)}</div>
+      {ctx.project.vibes.customVibe&&<p className="tp-custom-vibe">{ctx.project.vibes.customVibe}</p>}
+      {notes.length>0&&<dl className="tp-notes-grid">{notes.map(note=><div key={note.key} data-creator-input={`memory.${note.key}`}><dt>{labels[note.key]}</dt><dd>{note.answer}</dd></div>)}</dl>}
+      {ctx.project.memories.some(m=>!m.skipped&&m.answer.trim()&&native.has(m.key))&&<details className="tp-reading-copy"><summary>Read every note at your own pace</summary><dl className="tp-notes-grid">{ctx.project.memories.filter(m=>!m.skipped&&m.answer.trim()&&native.has(m.key)).map(note=><div key={note.key}><dt>{labels[note.key]}</dt><dd>{note.answer}</dd></div>)}</dl></details>}
+    </section>
     <InterestChapter ctx={ctx} />
     <CustomMemoryChapter ctx={ctx} />
     <HighPhotoChapter ctx={ctx} />
-    <footer><span>ODE / MADE PARTICULARLY</span><p>{ctx.memories.ending || `Still becoming, still entirely ${ctx.name}.`}</p></footer>
   </aside>;
 }

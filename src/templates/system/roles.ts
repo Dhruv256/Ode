@@ -1,5 +1,6 @@
 import type { PhotoAsset, TemplateId } from "@/lib/types";
 import type { PhotoRole, RoleAssignment } from "./types";
+import { photoStage } from "@/lib/photoIntelligence";
 
 /**
  * ─────────────────────────────────────────────────────────────────────────────
@@ -29,14 +30,8 @@ export function assignRoles(
 ): RoleAssignment[] {
   const n = photos.length;
   if (n === 0) return [];
-  const heroIndex = Math.max(
-    0,
-    photos.findIndex((p) => p.isHero || p.heroEligible === false) === -1
-      ? 0
-      : photos.findIndex((p) => p.isHero)
-  );
-  const hero = photos[heroIndex];
-  const finale = pick(photos, 1, n - 2); // a late, non-hero photo
+  const hero = photos.find(p=>p.isHero) ?? photos.find(p=>p.heroEligible && (photoStage(p)==="adult"||photoStage(p)==="young_adult")) ?? photos.find(p=>p.heroEligible) ?? photos[0];
+  const finale = [...photos].reverse().find(p=>p.id!==hero.id) ?? hero;
   const roles: RoleAssignment[] = [];
 
   photos.forEach((photo, i) => {

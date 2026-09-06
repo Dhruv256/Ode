@@ -175,6 +175,7 @@ export interface PaletteDefinition {
 /* ── Photos (Step 06 · Memories as images) ──────────────────────────────── */
 
 export type PhotoOrientation = "landscape" | "portrait" | "square";
+export type LifeStage = "childhood" | "teen" | "young_adult" | "adult" | "unknown";
 
 export type ImageFitMode = "fit" | "fill" | "original" | "manual";
 
@@ -194,6 +195,13 @@ export interface PhotoAnalysis {
   isCloseUp?: boolean;
   isGroupPhoto?: boolean;
   sharpness?: number;
+  contrast?: number;
+  stage?: LifeStage;
+  confidence?: number;
+  source?: "capture-date" | "visual-suggestion" | "unknown";
+  qualityHints?: string[];
+  layoutSuitability?: string[];
+  aspectRatio?: number;
 }
 
 export interface PhotoAsset {
@@ -212,6 +220,8 @@ export interface PhotoAsset {
   order: number;
   caption?: string;
   dateTaken?: string;
+  /** Creator correction always takes precedence over analysis suggestions. */
+  lifeStage?: LifeStage;
   location?: string;
   associatedMemoryId?: string;
   analysis?: PhotoAnalysis;

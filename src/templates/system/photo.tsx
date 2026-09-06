@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import Image from "next/image";
 import type { PhotoAsset } from "@/lib/types";
 import type { Treatment } from "./types";
 import { cn } from "@/lib/utils";
+import { normalizedFocal, FRAME_RATIOS, type FrameRatio } from "./frames";
 
 /**
  * Shared image primitive for all generated experiences.
@@ -47,6 +49,8 @@ export function Photo({
   style,
   fit,
   footprint = "normal",
+  ratio,
+  priority = false,
 }: {
   photo: PhotoAsset;
   className?: string;
@@ -58,22 +62,27 @@ export function Photo({
   style?: React.CSSProperties;
   fit?: "cover" | "contain";
   footprint?: "compact" | "normal" | "cinematic" | "unbounded";
+  ratio?: FrameRatio;
+  priority?: boolean;
 }) {
-  const focalX = (photo.focalPoint?.x ?? 0.5) * 100;
-  const focalY = (photo.focalPoint?.y ?? 0.5) * 100;
+  const focalX = normalizedFocal(photo.focalPoint?.x) * 100;
+  const focalY = normalizedFocal(photo.focalPoint?.y) * 100;
   const t = treatment ?? "none";
   const filter = imageFilter(t);
   const isVideo = photo.kind === "video" || photo.mimeType?.startsWith("video/");
   const [failed, setFailed] = useState(false);
+  useEffect(()=>setFailed(false),[photo.previewUrl]);
+  const legacyRatio=aspect?.includes("aspect-square")?"1 / 1":aspect?.match(/aspect-\[(\d+)\/(\d+)\]/)?.slice(1).join(" / ");
+  const frameStyle = { ...style, aspectRatio:ratio?FRAME_RATIOS[ratio]:legacyRatio??"4 / 5" };
 
   if (photo.needsRelink || failed) {
     return (
       <div
         data-photo-id={photo.id}
         className={cn("tp-frame flex items-center justify-center p-4 text-center font-mono text-[10px] uppercase leading-relaxed tracking-widest opacity-60", aspect, className)}
-        style={{ background: "var(--tp-panel, #efe9dc)" }}
+        style={{ ...frameStyle, background: "var(--tp-panel, #efe9dc)" }}
       >
-        {photo.needsRelink ? "photo needs retro linking" : "this media could not be opened"}
+        {photo.needsRelink ? "This photo needs to be re-linked by its creator" : "This media could not be opened"}
       </div>
     );
   }
@@ -85,7 +94,8 @@ export function Photo({
     <figure
       data-photo-id={photo.id}
       className={cn("tp-frame", footprintClass, aspect, className)}
-      style={style}
+      style={frameStyle}
+      data-frame-ratio={ratio}
     >
       {isVideo ? (
         <video
@@ -93,14 +103,13 @@ export function Photo({
           muted
           playsInline
           preload="metadata"
-          className={cn("h-full w-full object-cover", imgClassName)}
+          className={cn("absolute inset-0 h-full w-full object-cover", imgClassName)}
           style={{ objectPosition: `${focalX}% ${focalY}%`, objectFit: resolvedFit, filter }}
           aria-label={photo.caption || photo.fileName}
           onError={() => setFailed(true)}
         />
       ) : (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={photo.previewUrl} alt={photo.caption || photo.fileName} loading="lazy" draggable={false} onError={() => setFailed(true)} className={cn("h-full w-full object-cover", imgClassName)} style={{ objectPosition: `${focalX}% ${focalY}%`, objectFit: resolvedFit, filter }} />
+        <Image src={photo.previewUrl} alt={photo.caption || `A memory${photo.location ? ` in ${photo.location}` : ""}`} fill sizes="(max-width: 639px) 90vw, (max-width: 1023px) 46vw, 640px" priority={priority} unoptimized={!/^https:\/\/[^/]+\.supabase\.co\/storage\/v1\/object\/public\//.test(photo.previewUrl)} draggable={false} onError={() => setFailed(true)} className={cn("object-cover", imgClassName)} style={{ objectPosition: `${focalX}% ${focalY}%`, objectFit: resolvedFit, filter }} />
       )}
       {isVideo && <button type="button" className="absolute bottom-3 right-3 z-[4] border border-white/80 bg-black/55 px-2 py-1 font-mono text-[9px] uppercase tracking-widest text-white" onClick={(e) => { const video = e.currentTarget.parentElement?.querySelector("video"); if (!video) return; video.paused ? void video.play() : video.pause(); }}>play clip</button>}
       {overlayKinds(t).map((o, i) => (

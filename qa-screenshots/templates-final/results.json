@@ -1,0 +1,30 @@
+[
+  {
+    "id": "after-dark",
+    "width": 390,
+    "overflow": false,
+    "fonts": [
+      "Anton",
+      "Fraunces",
+      "Fraunces",
+      "IBM Plex Mono",
+      "IBM Plex Mono",
+      "Space Grotesk"
+    ],
+    "broken": 0
+  },
+  {
+    "id": "after-dark",
+    "width": 1440,
+    "overflow": false,
+    "fonts": [
+      "Anton",
+      "Fraunces",
+      "Fraunces",
+      "IBM Plex Mono",
+      "IBM Plex Mono",
+      "Space Grotesk"
+    ],
+    "broken": 0
+  }
+]

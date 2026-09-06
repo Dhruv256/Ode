@@ -144,33 +144,25 @@ input[type="number"] {
   overflow-x: clip;
 }
 .birthday-template [data-experience-chapter] {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 640px;
+  /* Real content sets section height. Guessed intrinsic heights caused scroll jumps. */
+  scroll-margin-top: 1.5rem;
 }
 .birthday-template .tp-photo-normal {
-  max-width: min(92vw, 72rem);
-  max-height: 68svh;
+  max-width: 100%;
 }
 .birthday-template .tp-photo-compact {
-  max-width: min(82vw, 42rem);
-  max-height: 54svh;
+  max-width: 100%;
 }
 .birthday-template .tp-photo-cinematic {
-  max-width: min(92vw, 82rem);
-  max-height: 68svh;
-}
-@media (min-width: 640px) {
-  .birthday-template .tp-photo-normal { max-width: min(82vw, 72rem); max-height: 72vh; }
-  .birthday-template .tp-photo-compact { max-width: min(62vw, 42rem); max-height: 60vh; }
-  .birthday-template .tp-photo-cinematic { max-width: min(82vw, 82rem); max-height: 72vh; }
+  max-width: 100%;
 }
 .tp-auto-carousel { position: relative; }
 .tp-carousel-viewport { cursor: grab; user-select: none; }
 .tp-carousel-viewport:active { cursor: grabbing; }
 .tp-carousel-control {
   display: grid;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2.75rem;
+  height: 2.75rem;
   place-items: center;
   border: 1px solid currentColor;
   background: transparent;
@@ -178,9 +170,7 @@ input[type="number"] {
   transition: background .2s ease, color .2s ease;
 }
 .tp-carousel-control:hover,
-.tp-carousel-control:focus-visible { background: currentColor; color: var(--tp-bg, #f4f0e7); }
-.tp-auto-carousel * { scrollbar-width: none; }
-.tp-auto-carousel *::-webkit-scrollbar { display: none; }
+.tp-carousel-control:focus-visible { background: var(--tp-text); color: var(--tp-bg, #f4f0e7); }
 
 @media (max-width: 639px) {
   .birthday-template {
@@ -205,8 +195,8 @@ input[type="number"] {
   z-index: 3;
   padding: 1rem 0.75rem 0.6rem;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.72), transparent);
-  opacity: 0;
-  transform: translateY(6px);
+  opacity: 1;
+  transform: none;
   transition: opacity 0.25s ease, transform 0.25s ease;
 }
 .tp-frame:hover .tp-cap,
@@ -282,13 +272,13 @@ input[type="number"] {
   inset: -20%;
   pointer-events: none;
   background: conic-gradient(from 30deg, transparent, rgba(255,255,255,.3), transparent 35%);
-  animation: tp-portal-refract 8s linear infinite;
+  transform: rotate(25deg);
   mix-blend-mode: overlay;
 }
 @keyframes tp-portal-refract { to { transform: rotate(1turn); } }
 
 .tp-develop-photo {
-  animation: tp-develop 2.8s cubic-bezier(.16,1,.3,1) both;
+  /* Development is choreographed once by the Contact Sheet motion profile. */
 }
 @keyframes tp-develop {
   0% { filter: grayscale(1) contrast(.15) brightness(1.45); opacity: .18; transform: rotateX(8deg) rotateZ(-1deg); }
@@ -354,7 +344,7 @@ input[type="number"] {
 .tp-high-photo {
   width: min(100%, 88rem);
   margin-inline: auto;
-  padding: clamp(4rem, 10vw, 8rem) var(--page-gutter);
+  padding: calc(clamp(2.5rem, 6vw, 5rem) * var(--tp-density, 1)) var(--page-gutter);
 }
 .tp-interest-heading > p,
 .tp-custom-memories > header > p,

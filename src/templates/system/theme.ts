@@ -1,5 +1,11 @@
 import type { Theme } from "./types";
 
+export function contrastRatio(a:string,b:string):number {
+  const luminance=(hex:string)=>{const clean=hex.replace('#','');const value=clean.length===3?clean.split('').map(c=>c+c).join(''):clean;const channels=[0,2,4].map(i=>parseInt(value.slice(i,i+2),16)/255).map(c=>c<=.04045?c/12.92:Math.pow((c+.055)/1.055,2.4));return .2126*channels[0]+.7152*channels[1]+.0722*channels[2];};
+  const x=luminance(a),y=luminance(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05);
+}
+export function readableTextOn(bg:string){return contrastRatio(bg,'#14140f')>=contrastRatio(bg,'#fffdf8')?'#14140f':'#fffdf8';}
+
 /** WCAG-ish contrast pick: dark text for light grounds, light text for dark. */
 function readableOn(hex: string): string {
   const c = hex.replace("#", "");
@@ -40,7 +46,7 @@ export function buildTheme(colors: string[]): Theme {
 
   // Type color flows from the palette's own pairing, but must read on bg.
   const textIsInk = /^(?:#|)(?:[0-9a-f]{6}|[0-9a-f]{3})$/i.test(ink);
-  const text = textIsInk ? ink : readableOn(bg);
+  const text = textIsInk && contrastRatio(ink,bg)>=4.5 ? ink : readableTextOn(bg);
 
   const lumBg = readableOn(bg) === "#14140f"; // background is light
   const lighter = lumBg;
@@ -68,5 +74,7 @@ export function themeVars(theme: Theme): Record<string, string> {
     "--tp-accent2": theme.accent2,
     "--tp-accent3": theme.accent3,
     "--tp-line": theme.line,
+    "--tp-on-accent":readableTextOn(theme.accent),
+    "--tp-accent-ink":contrastRatio(theme.accent,theme.bg)>=4.5?theme.accent:theme.text,
   };
 }

@@ -1,0 +1,70 @@
+[
+  {
+    "name": "75 binary uploads",
+    "pass": true
+  },
+  {
+    "name": "reload persists 75 original bytes",
+    "pass": true
+  },
+  {
+    "name": "missing originals relink without duplicates",
+    "pass": true
+  },
+  {
+    "name": "clear undo reload retains originals",
+    "pass": true
+  },
+  {
+    "name": "keyboard focal point available",
+    "pass": true
+  },
+  {
+    "name": "contact-sheet 75 originals modal reduced-motion",
+    "pass": true
+  },
+  {
+    "name": "cut-and-paste 75 originals modal reduced-motion",
+    "pass": true
+  },
+  {
+    "name": "cover-star 75 originals modal reduced-motion",
+    "pass": true
+  },
+  {
+    "name": "cinema 75 originals modal reduced-motion",
+    "pass": true
+  },
+  {
+    "name": "internet-person 75 originals modal reduced-motion",
+    "pass": true
+  },
+  {
+    "name": "archive 75 originals modal reduced-motion",
+    "pass": true
+  },
+  {
+    "name": "after-dark 75 originals modal reduced-motion",
+    "pass": true
+  },
+  {
+    "name": "sunday-morning 75 originals modal reduced-motion",
+    "pass": true
+  },
+  {
+    "name": "polaroid-wall 75 originals modal reduced-motion",
+    "pass": true
+  },
+  {
+    "name": "dreamscape 75 originals modal reduced-motion",
+    "pass": true
+  },
+  {
+    "name": "poster-city 75 originals modal reduced-motion",
+    "pass": true
+  },
+  {
+    "name": "yearbook 75 originals modal reduced-motion",
+    "pass": true
+  }
+]

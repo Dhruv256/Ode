@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { CAROUSEL_AUTOPLAY_MS } from "@/lib/birthdayCapabilities";
+import { MOTION } from "./motion";
 
 export type CarouselKind = "film" | "editorial" | "fade" | "vertical" | "stack" | "window" | "orbit" | "poster" | "spread";
 
@@ -33,6 +34,7 @@ export function AutoCarousel<T>({
   controlsClassName,
   label = "Memory carousel",
   showControls = true,
+  sizer,
 }: {
   items: readonly T[];
   renderItem: (item: T, index: number, slot: number) => React.ReactNode;
@@ -47,10 +49,18 @@ export function AutoCarousel<T>({
   controlsClassName?: string;
   label?: string;
   showControls?: boolean;
+  sizer?: React.ReactNode;
 }) {
   const reduced = useReducedMotion();
   const [active, setActive] = useState(0);
-  const [paused, setPaused] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
+  const [manual, setManual] = useState(false);
+  const [interacting, setInteracting] = useState(false);
+  const [visibleOnScreen, setVisibleOnScreen] = useState(false);
+  const [hidden, setHidden] = useState(false);
+  const root = useRef<HTMLElement>(null);
+  const paused = hovered || focused || manual || interacting || hidden || !visibleOnScreen;
   const pointerStart = useRef<number | null>(null);
   const resumeTimer = useRef<number>();
   const count = items.length;
@@ -68,6 +78,8 @@ export function AutoCarousel<T>({
     return () => window.clearInterval(interval);
   }, [effectiveAutoMs, count, next, paused, reduced]);
 
+  useEffect(()=>{const node=root.current;if(!node)return;const observer=new IntersectionObserver(([entry])=>setVisibleOnScreen(entry.isIntersecting),{threshold:.2});observer.observe(node);const visibility=()=>setHidden(document.hidden);visibility();document.addEventListener("visibilitychange",visibility);return()=>{observer.disconnect();document.removeEventListener("visibilitychange",visibility);};},[]);
+
   useEffect(() => () => {
     if (resumeTimer.current) window.clearTimeout(resumeTimer.current);
   }, []);
@@ -80,20 +92,19 @@ export function AutoCarousel<T>({
   if (!count) return null;
 
   const pauseTemporarily = () => {
-    setPaused(true);
-    if (resumeTimer.current) window.clearTimeout(resumeTimer.current);
-    resumeTimer.current = window.setTimeout(() => setPaused(false), resumeDelay);
+    // A reader's explicit interaction cannot be undone by a hover/blur timeout.
+    setManual(true);
   };
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     pointerStart.current = event.clientX;
-    setPaused(true);
-    event.currentTarget.setPointerCapture(event.pointerId);
+    setInteracting(true);
   };
 
   const onPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
     const start = pointerStart.current;
     pointerStart.current = null;
+    setInteracting(false);
     if (start !== null) {
       const delta = event.clientX - start;
       if (Math.abs(delta) > 36) delta > 0 ? previous() : next();
@@ -102,30 +113,35 @@ export function AutoCarousel<T>({
   };
 
   return <section
+    ref={root}
     className={cn("tp-auto-carousel", className)}
     aria-roledescription="carousel"
     aria-label={label}
-    onMouseEnter={() => setPaused(true)}
-    onMouseLeave={() => setPaused(false)}
-    onFocusCapture={() => setPaused(true)}
-    onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false); }}
+    data-carousel-count={count}
+    onMouseEnter={() => setHovered(true)}
+    onMouseLeave={() => setHovered(false)}
+    onFocusCapture={() => setFocused(true)}
+    onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}
     onKeyDown={(event) => {
+      if((event.target as HTMLElement).closest('.tp-auto-carousel')!==event.currentTarget || (event.target as HTMLElement).matches('input,textarea,select'))return;
       if (event.key === "ArrowRight") { event.preventDefault(); next(); pauseTemporarily(); }
       if (event.key === "ArrowLeft") { event.preventDefault(); previous(); pauseTemporarily(); }
     }}
   >
     <div
-      className={cn("tp-carousel-viewport touch-pan-y overflow-hidden", viewportClassName)}
+      className={cn("tp-carousel-viewport touch-pan-y", viewportClassName)}
       onPointerDown={onPointerDown}
       onPointerUp={onPointerUp}
-      onPointerCancel={() => { pointerStart.current = null; pauseTemporarily(); }}
+      onPointerCancel={() => { pointerStart.current = null; setInteracting(false); }}
+      style={sizer ? {display:"grid"} : undefined}
     >
-      <div className={cn("grid gap-[var(--image-gap)]", shown === 2 && "grid-cols-2", shown === 3 && "grid-cols-3", kind === "vertical" && "grid-cols-1")}>
+      {sizer && <div aria-hidden="true" className="invisible pointer-events-none" style={{gridArea:"1 / 1"}}>{sizer}</div>}
+      <div style={sizer ? {gridArea:"1 / 1",alignSelf:"center"} : undefined} className={cn("tp-carousel-track grid gap-[var(--image-gap)]", shown === 2 && "grid-cols-2", shown === 3 && "grid-cols-3", kind === "vertical" && "grid-cols-1")}>
         {slots.map(({ item, index, slot }) => <motion.div
           key={`${getKey(item, index)}-${active}-${slot}`}
           initial={reduced ? false : initialByKind[kind]}
           animate={{ opacity: 1, x: 0, y: 0, scale: 1, rotateY: 0, rotateZ: kind === "stack" ? (slot - 1) * 1.5 : 0 }}
-          transition={{ duration: reduced ? 0 : .62, ease: [.16, 1, .3, 1] }}
+          transition={{ duration: reduced ? 0 : MOTION.carousel, ease: MOTION.entrance }}
           className={cn("min-w-0", itemClassName)}
           aria-hidden={slot > 0 ? undefined : false}
         >{renderItem(item, index, slot)}</motion.div>)}
@@ -133,12 +149,15 @@ export function AutoCarousel<T>({
     </div>
     {showControls && count > 1 ? <div className={cn("mt-4 flex items-center justify-between gap-4", controlsClassName)}>
       <button type="button" onClick={() => { previous(); pauseTemporarily(); }} aria-label="Previous item" className="tp-carousel-control">←</button>
-      <span className="font-mono text-[9px] uppercase tracking-widest2 opacity-55" aria-live="polite">{String(active + 1).padStart(2, "0")} / {String(count).padStart(2, "0")} {paused ? "· paused" : reduced ? "· manual" : "· playing"}</span>
+      <span className="font-mono text-[10px] uppercase tracking-widest2" aria-live={manual ? "polite" : "off"}>{String(active % count + 1).padStart(2, "0")} / {String(count).padStart(2, "0")}</span>
+      {!reduced && <button type="button" className="tp-carousel-play" onClick={()=>setManual(value=>!value)} aria-label={manual ? "Play slideshow" : "Pause slideshow"}>{manual ? "Play" : "Pause"}</button>}
       <button type="button" onClick={() => { next(); pauseTemporarily(); }} aria-label="Next item" className="tp-carousel-control">→</button>
     </div> : null}
   </section>;
 }
 
 export function TextCarousel({ items, kind = "vertical", className, autoMs = CAROUSEL_AUTOPLAY_MS, label = "Rotating words" }: { items: readonly string[]; kind?: CarouselKind; className?: string; autoMs?: number; label?: string }) {
-  return <AutoCarousel items={items.filter(Boolean)} getKey={(item) => item} renderItem={(item) => <p>{item}</p>} kind={kind} visible={1} autoMs={autoMs} className={className} label={label} />;
+  const words=items.filter(Boolean);
+  if(!words.length)return null;
+  return <div data-creator-values={JSON.stringify(words)}><AutoCarousel items={words} getKey={(item,index) => `${index}-${item}`} renderItem={(item) => <p>{item}</p>} kind={kind} visible={1} autoMs={autoMs} className={cn("tp-text-carousel",className)} label={label} sizer={<div className="grid">{words.map((item,index)=><p key={index} style={{gridArea:"1 / 1"}}>{item}</p>)}</div>} /></div>;
 }

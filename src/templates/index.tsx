@@ -1,8 +1,6 @@
 "use client";
 
-"use client";
-
-import React, { useMemo } from "react";
+import React, { useMemo, useRef } from "react";
 import dynamic from "next/dynamic";
 import type { BirthdayProject, TemplateId } from "@/lib/types";
 import { resolveProjectColors } from "@/lib/palettes";
@@ -14,24 +12,27 @@ import { assignRoles } from "./system/roles";
 import type { MemBundle, RenderCtx } from "./system/types";
 
 /* ── template modules ── */
-import ContactSheet from "./contact-sheet";
-import CutAndPaste from "./cut-and-paste";
-import CoverStar from "./cover-star";
-import InternetPerson from "./internet-person";
-import Archive from "./archive";
-import AfterDark from "./after-dark";
-import SundayMorning from "./sunday-morning";
-import Yearbook from "./yearbook";
+const ContactSheet = dynamic(() => import("./contact-sheet"));
+const CutAndPaste = dynamic(() => import("./cut-and-paste"));
+const CoverStar = dynamic(() => import("./cover-star"));
+const InternetPerson = dynamic(() => import("./internet-person"));
+const Archive = dynamic(() => import("./archive"));
+const AfterDark = dynamic(() => import("./after-dark"));
+const SundayMorning = dynamic(() => import("./sunday-morning"));
+const Yearbook = dynamic(() => import("./yearbook"));
 
-const Cinema = dynamic(() => import("./cinema"), { ssr: false });
-const PolaroidWall = dynamic(() => import("./polaroid-wall"), { ssr: false });
-const Dreamscape = dynamic(() => import("./dreamscape"), { ssr: false });
-const PosterCity = dynamic(() => import("./poster-city"), { ssr: false });
+const Cinema = dynamic(() => import("./cinema"));
+const PolaroidWall = dynamic(() => import("./polaroid-wall"));
+const Dreamscape = dynamic(() => import("./dreamscape"));
+const PosterCity = dynamic(() => import("./poster-city"));
 
 import { cn } from "@/lib/utils";
 import { SoundtrackControl } from "@/components/media/SoundtrackControl";
 import { CountdownGate } from "./system/CountdownGate";
-import { PersonalizationSections } from "./system/PersonalizationSections";
+import { TemplateMotion, vibeDirection, MOTION_PROFILES } from "./system/motion";
+import { TEMPLATE_FRAMES, FRAME_RATIOS } from "./system/frames";
+import { InputUsageQa } from "./system/InputUsageQa";
+import { chronologicalPhotos } from "@/lib/photoIntelligence";
 import { useMobileComposition, usePerformanceTier, type PerformanceTier } from "./system/responsive";
 
 const REGISTRY: Record<TemplateId, React.ComponentType<{ ctx: RenderCtx }>> = {
@@ -87,7 +88,8 @@ export function buildCtx(
   const colors = resolveProjectColors(project.paletteId, project.customPalette) ?? ["#F4F0E7", "#1B1815", "#B4502A", "#6E56CF", "#5A6B4D"];
   const theme = buildTheme(colors);
   const style = TEMPLATE_STYLE[id];
-  const photos = [...project.photos].sort((a, b) => a.order - b.order);
+  const ordered = [...project.photos].sort((a, b) => a.order - b.order);
+  const photos = ["archive","cinema","yearbook"].includes(id) ? chronologicalPhotos(ordered) : ordered;
   const dense = DENSE_TEMPLATES.includes(id);
   const roles = assignRoles(photos, { dense, strips: true });
 
@@ -104,7 +106,7 @@ export function buildCtx(
     milestone: milestoneOf(project.age),
     title: milestoneTitleFor(project.age, id) ?? `${project.age ?? "A"} — a celebration`,
     photos,
-    hero: photos.find((p) => p.isHero) ?? photos[0],
+    hero: roles.find(r=>r.role==="hero")?.photo ?? photos[0],
     finalePhoto: roles.find((r) => r.role === "finale")?.photo ?? photos[photos.length - 1],
     roles,
     interests: project.interests.map((i) => i.label.toLowerCase()),
@@ -137,6 +139,7 @@ export function TemplateView({
   className?: string;
 }) {
   const viewportIsMobile = useMobileComposition();
+  const root = useRef<HTMLDivElement>(null);
   const performanceTier = usePerformanceTier();
   const resolvedDevice = device === "auto" ? (viewportIsMobile ? "mobile" : "desktop") : device;
   const ctx = useMemo(
@@ -145,20 +148,25 @@ export function TemplateView({
   );
   const Body = REGISTRY[templateId];
   const vars = useMemo(() => themeVars(ctx.theme), [ctx.theme]);
+  const direction = vibeDirection(project.vibes.vibes);
 
   if (!Body) {
     return <div className="p-10 font-mono text-sm">This visual system is unavailable.</div>;
   }
 
   return (
-    <div
+    <TemplateMotion id={templateId} vibes={project.vibes.vibes}><div
+      ref={root}
       className={cn("birthday-template relative", className)}
       data-template={templateId}
       data-composition={resolvedDevice}
       data-performance-tier={performanceTier}
-      style={{ ...vars, "--tp-display": ctx.fonts.display, background: ctx.theme.bg, color: ctx.theme.text, fontFamily: ctx.fonts.body } as React.CSSProperties}
+      data-vibes={project.vibes.vibes.join(" ")}
+      data-motion-profile={MOTION_PROFILES[templateId].name}
+      style={{ ...vars, "--tp-display": ctx.fonts.display, "--tp-mono":ctx.fonts.mono, "--tp-density":direction.density, "--tp-repeat-ratio":FRAME_RATIOS[TEMPLATE_FRAMES[templateId].repeated], background: ctx.theme.bg, color: ctx.theme.text, fontFamily: ctx.fonts.body } as React.CSSProperties}
     >
-      {onEdit ? <><SoundtrackControl soundtrack={project.soundtrack} templateId={templateId} preview /><Body ctx={ctx} /><PersonalizationSections ctx={ctx} /></> : <CountdownGate ctx={ctx}><SoundtrackControl soundtrack={project.soundtrack} templateId={templateId} /><Body ctx={ctx} /><PersonalizationSections ctx={ctx} /></CountdownGate>}
-    </div>
+      {onEdit ? <><SoundtrackControl soundtrack={project.soundtrack} templateId={templateId} preview /><Body ctx={ctx} /></> : <CountdownGate ctx={ctx}><SoundtrackControl soundtrack={project.soundtrack} templateId={templateId} /><Body ctx={ctx} /></CountdownGate>}
+      {process.env.NODE_ENV !== "production" && <InputUsageQa project={project} templateId={templateId} root={root}/>}
+    </div></TemplateMotion>
   );
 }

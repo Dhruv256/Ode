@@ -8,6 +8,9 @@ import { useProject } from "@/state/projectStore";
 import { uid, cn, clamp } from "@/lib/utils";
 import type { FocalPoint, ImageFitMode, PhotoAsset, PhotoOrientation } from "@/lib/types";
 import { BIRTHDAY_PHOTO_LIMIT, HIGH_PHOTO_THRESHOLD, resolvePhotoMode } from "@/lib/birthdayCapabilities";
+import { captureDate, analyzePhoto } from "@/lib/photoIntelligence";
+import { saveLocalMedia, removeLocalMedia } from "@/lib/localMedia";
+import { PhotoOrganizer } from "./PhotoOrganizer";
 
 const FIT_MODES: ImageFitMode[] = ["fit", "fill", "original", "manual"];
 
@@ -23,12 +26,16 @@ export default function PhotosStep({ nav }: { nav: StepNav }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState("");
   const [confirmClear, setConfirmClear] = useState(false);
+  const [removed, setRemoved] = useState<PhotoAsset[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const uploadLock = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const selectedMode = project.photoMode ?? "auto";
   const resolvedMode = resolvePhotoMode(project);
 
   const clearAllPhotos = () => {
-    for (const photo of project.photos) if (photo.previewUrl.startsWith("blob:")) URL.revokeObjectURL(photo.previewUrl);
+    setRemoved(project.photos);
+    void removeLocalMedia(project.id, project.photos.map(p=>p.id));
     dispatch({ type: "clearPhotos" });
     setExpandedId(null);
     setUploadError("");
@@ -37,23 +44,30 @@ export default function PhotosStep({ nav }: { nav: StepNav }) {
 
   const addFiles = useCallback(
     async (files: FileList | File[]) => {
+      if(uploadLock.current)return;
       const list = Array.from(files).filter((f) => f.type.startsWith("image/") || f.type.startsWith("video/"));
       if (list.length === 0) return;
-      if (project.photos.length + list.length > BIRTHDAY_PHOTO_LIMIT) {
+      const relinks=new Set<string>();
+      const existing=list.map(file=>{const match=project.photos.find(p=>p.needsRelink&&p.fileName===file.name&&!relinks.has(p.id));if(match)relinks.add(match.id);return match;});
+      if (project.photos.length + list.length - relinks.size > BIRTHDAY_PHOTO_LIMIT) {
         setUploadError(`That batch would take this website past ${BIRTHDAY_PHOTO_LIMIT} photos. Nothing was dropped—remove ${project.photos.length + list.length - BIRTHDAY_PHOTO_LIMIT} file${project.photos.length + list.length - BIRTHDAY_PHOTO_LIMIT === 1 ? "" : "s"} from the batch and try again.`);
         return;
       }
       setUploadError("");
+      uploadLock.current=true;
+      setUploading(true);
       setConfirmClear(false);
       const assets: PhotoAsset[] = [];
       let order = project.photos.length;
-      for (const file of list) {
+      try { for (let index=0;index<list.length;index++) {
+        const file=list[index];
         const previewUrl = URL.createObjectURL(file);
         const dims = file.type.startsWith("video/")
           ? await readVideoDimensions(previewUrl)
           : await readImageDimensions(previewUrl);
-        assets.push({
-          id: uid(),
+        const dateTaken = file.type.startsWith("image/") ? await captureDate(file) : undefined;
+        const asset: PhotoAsset = {
+          id: existing[index]?.id ?? uid(),
           fileName: file.name,
           previewUrl,
           width: dims.width,
@@ -63,14 +77,23 @@ export default function PhotosStep({ nav }: { nav: StepNav }) {
           fit: "fill",
           heroEligible: true,
           isHero: false,
-          order: order++,
+          order: existing[index]?.order ?? order++,
           kind: file.type.startsWith("video/") ? "video" : "image",
           mimeType: file.type,
-        });
+          dateTaken,
+          ...existing[index],
+          needsRelink:false,
+        };
+        asset.previewUrl=previewUrl;
+        asset.analysis=analyzePhoto(asset,project);
+        const persisted=await saveLocalMedia(project.id,asset.id,file);
+        if(!persisted)setUploadError("These photos work in this session, but browser storage is unavailable. Keep this tab open until you publish.");
+        if(existing[index])dispatch({type:"patchPhoto",photoId:asset.id,patch:asset});else assets.push(asset);
       }
       dispatch({ type: "addPhotos", photos: assets });
+      } finally {uploadLock.current=false;setUploading(false);}
     },
-    [dispatch, project.photos.length]
+    [dispatch, project]
   );
 
   return (
@@ -98,16 +121,17 @@ export default function PhotosStep({ nav }: { nav: StepNav }) {
           <p className="font-mono text-[10px] uppercase tracking-widest2 text-ink-faint">
             Active: {resolvedMode === "high-photo" ? "50+ Photo · every upload is rendered" : "Standard"} · {project.photos.length}/{BIRTHDAY_PHOTO_LIMIT}
           </p>
-          {project.photos.length > 0 && <button type="button" aria-expanded={confirmClear} onClick={() => setConfirmClear(value => !value)} className="min-h-11 border-b border-ember px-1 font-mono text-[10px] uppercase tracking-widest2 text-ember transition-colors hover:bg-ember hover:px-3 hover:text-paper">Clear all {project.photos.length}</button>}
+          {project.photos.length > 0 && <button type="button" disabled={uploading} aria-expanded={confirmClear} onClick={() => setConfirmClear(value => !value)} className="min-h-11 border-b border-ember px-1 font-mono text-[10px] uppercase tracking-widest2 text-ember transition-colors hover:bg-ember hover:px-3 hover:text-paper">Clear all {project.photos.length}</button>}
         </div>
       </fieldset>
 
       {confirmClear && project.photos.length > 0 && <motion.div initial={{ opacity:0, y:-4 }} animate={{ opacity:1, y:0 }} role="alertdialog" aria-label="Clear all photos" className="mt-4 flex flex-wrap items-center gap-3 border border-ember bg-paper-deep px-4 py-3">
-        <p className="mr-auto text-sm text-ink-soft">Remove all {project.photos.length} photos from this website? This can&apos;t be undone.</p>
+        <p className="mr-auto text-sm text-ink-soft">Remove all {project.photos.length} photos from this website? You can undo this before leaving this step.</p>
         <button type="button" onClick={() => setConfirmClear(false)} className="min-h-11 px-3 font-mono text-[10px] uppercase tracking-widest2">Keep photos</button>
         <button type="button" onClick={clearAllPhotos} className="min-h-11 bg-ember px-4 font-mono text-[10px] uppercase tracking-widest2 text-paper">Delete all photos</button>
       </motion.div>}
 
+      {removed.length > 0 && <div role="status" className="mt-4 flex flex-wrap items-center gap-3 border border-line p-4"><p>{removed.length} photos removed.</p><button type="button" className="min-h-11 underline" onClick={async()=>{const restore=removed.filter(p=>!project.photos.some(existing=>existing.id===p.id));for(const photo of restore){if(photo.previewUrl.startsWith("blob:")){const blob=await fetch(photo.previewUrl).then(r=>r.blob());await saveLocalMedia(project.id,photo.id,blob);}}dispatch({type:"addPhotos",photos:restore.map((p,i)=>({...p,order:project.photos.length+i}))});setRemoved([]);}}>Undo clear all</button></div>}
       {/* Dropzone */}
       <div
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
@@ -120,13 +144,14 @@ export default function PhotosStep({ nav }: { nav: StepNav }) {
         onClick={() => inputRef.current?.click()}
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => e.key === "Enter" && inputRef.current?.click()}
+        aria-busy={uploading}
+        onKeyDown={(e) => {if(e.key === "Enter" || e.key === " "){e.preventDefault();inputRef.current?.click();}}}
         className={cn(
           "mt-8 cursor-pointer border border-dashed p-8 text-center transition-colors sm:p-12",
           dragging ? "border-ember bg-paper-deep" : "border-ink-faint/50 hover:border-ink"
         )}
       >
-        <p className="font-display text-2xl font-light italic">Drop photos here</p>
+        <p className="font-display text-2xl font-light italic">{uploading ? "Saving originals…" : project.photos.length ? "Add more photos" : "Drop photos here"}</p>
         <p className="mt-2 font-mono text-[11px] uppercase tracking-widest2 text-ink-faint">
           or tap to browse · multiple files welcome · stays on your device
         </p>
@@ -152,6 +177,7 @@ export default function PhotosStep({ nav }: { nav: StepNav }) {
         </p>
       )}
 
+      {project.photos.length > 0 && <PhotoOrganizer />}
       {/* Photo wall */}
       {project.photos.length > 0 && (
         <ul className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
@@ -199,8 +225,9 @@ function orientationOf(w: number, h: number): PhotoOrientation {
 function readImageDimensions(url: string): Promise<{ width: number; height: number }> {
   return new Promise((resolve) => {
     const img = new Image();
-    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
-    img.onerror = () => resolve({ width: 0, height: 0 });
+    const timeout=window.setTimeout(()=>resolve({width:0,height:0}),15000);
+    img.onload = () => {clearTimeout(timeout);resolve({ width: img.naturalWidth, height: img.naturalHeight });};
+    img.onerror = () => {clearTimeout(timeout);resolve({ width: 0, height: 0 });};
     img.src = url;
   });
 }
@@ -226,12 +253,12 @@ function PhotoCard({
   expanded: boolean;
   onToggleExpand: () => void;
 }) {
-  const { dispatch } = useProject();
+  const { project, dispatch } = useProject();
   const patch = (p: Partial<PhotoAsset>) =>
     dispatch({ type: "patchPhoto", photoId: photo.id, patch: p });
 
   const setFocal = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
+    const rect = (e.currentTarget.querySelector("img,video") ?? e.currentTarget).getBoundingClientRect();
     const x = clamp((e.clientX - rect.left) / rect.width, 0, 1);
     const y = clamp((e.clientY - rect.top) / rect.height, 0, 1);
     patch({ focalPoint: { x, y } });
@@ -240,15 +267,15 @@ function PhotoCard({
   return (
     <motion.li layout className={cn(photo.needsRelink && "opacity-50")}>
       <div
-        className="group relative aspect-square w-full cursor-crosshair overflow-hidden border border-line bg-paper-deep"
+        className="group relative w-full cursor-crosshair overflow-hidden border border-line bg-paper-deep"
         onClick={(e) => setFocal(e)}
         title="Click to set focal point"
       >
         {photo.kind === "video" ? (
-          <video src={photo.previewUrl} muted playsInline preload="metadata" className="h-full w-full select-none object-cover" style={{ objectPosition: `${photo.focalPoint.x * 100}% ${photo.focalPoint.y * 100}%`, objectFit: photo.fit === "fit" ? "contain" : "cover" }} />
+          <video src={photo.previewUrl} muted playsInline preload="metadata" className="aspect-square w-full select-none object-cover" style={{ objectPosition: `${photo.focalPoint.x * 100}% ${photo.focalPoint.y * 100}%`, objectFit: photo.fit === "fit" ? "contain" : "cover" }} />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={photo.previewUrl} alt={photo.caption ?? photo.fileName} draggable={false} className="h-full w-full select-none object-cover" style={{ objectPosition: `${photo.focalPoint.x * 100}% ${photo.focalPoint.y * 100}%`, objectFit: photo.fit === "fit" ? "contain" : "cover" }} />
+          <img src={photo.previewUrl} alt={photo.caption ?? photo.fileName} draggable={false} className="aspect-square w-full select-none object-cover" style={{ objectPosition: `${photo.focalPoint.x * 100}% ${photo.focalPoint.y * 100}%`, objectFit: photo.fit === "fit" ? "contain" : "cover" }} />
         )}
 
         {/* Focal marker */}
@@ -268,7 +295,7 @@ function PhotoCard({
         )}
 
         {/* Controls bar */}
-        <div className="absolute inset-x-0 bottom-0 flex items-center justify-between border-t border-paper/20 bg-night/60 px-1.5 py-1 opacity-0 transition-opacity group-hover:opacity-100">
+        <div className="relative flex flex-wrap items-center justify-between border-t border-paper/20 bg-night px-1 py-1">
           <div className="flex items-center">
             <CtlButton label="Move earlier" onClick={() => dispatch({ type: "movePhoto", photoId: photo.id, direction: -1 })}>←</CtlButton>
             <CtlButton label="Move later" onClick={() => dispatch({ type: "movePhoto", photoId: photo.id, direction: 1 })}>→</CtlButton>
@@ -279,7 +306,7 @@ function PhotoCard({
           </span>
           <div className="flex items-center">
             <CtlButton label="Details" onClick={onToggleExpand}>{expanded ? "−" : "+"}</CtlButton>
-            <CtlButton label="Delete" danger onClick={() => dispatch({ type: "removePhoto", photoId: photo.id })}>✕</CtlButton>
+            <CtlButton label="Delete" danger onClick={() => {void removeLocalMedia(project.id,[photo.id]);dispatch({ type: "removePhoto", photoId: photo.id });}}>✕</CtlButton>
           </div>
         </div>
       </div>
@@ -287,7 +314,14 @@ function PhotoCard({
       {/* Expanded metadata editor */}
       {expanded && (
         <div className="mt-2 space-y-2 border border-line p-3">
+          <label className="block text-sm">Horizontal focal point
+            <input type="range" min="0" max="1" step="0.01" value={photo.focalPoint.x} onChange={e => patch({ focalPoint: { ...photo.focalPoint, x: Number(e.target.value) } })} className="min-h-11 w-full" />
+          </label>
+          <label className="block text-sm">Vertical focal point
+            <input type="range" min="0" max="1" step="0.01" value={photo.focalPoint.y} onChange={e => patch({ focalPoint: { ...photo.focalPoint, y: Number(e.target.value) } })} className="min-h-11 w-full" />
+          </label>
           <select
+            aria-label="Photo crop mode"
             value={photo.fit}
             onChange={(e) => patch({ fit: e.target.value as ImageFitMode })}
             className="w-full border-b border-line bg-transparent pb-1 font-mono text-[11px] uppercase tracking-widest2 focus:border-ink focus:outline-none"
@@ -300,6 +334,7 @@ function PhotoCard({
           </select>
           <input
             type="text"
+            aria-label="Photo caption"
             value={photo.caption ?? ""}
             onChange={(e) => patch({ caption: e.target.value })}
             placeholder="caption…"
@@ -308,6 +343,7 @@ function PhotoCard({
           />
           <input
             type="text"
+            aria-label="Photo location"
             value={photo.location ?? ""}
             onChange={(e) => patch({ location: e.target.value })}
             placeholder="where was this? (optional)"
@@ -316,6 +352,7 @@ function PhotoCard({
           />
           <input
             type="date"
+            aria-label="Photo capture date"
             value={photo.dateTaken ?? ""}
             onChange={(e) => patch({ dateTaken: e.target.value })}
             className="w-full border-b border-line bg-transparent pb-1 font-sans text-sm text-ink-soft focus:border-ink focus:outline-none"
@@ -350,7 +387,7 @@ function CtlButton({
         onClick();
       }}
       className={cn(
-        "grid h-6 w-6 place-items-center font-mono text-[11px] text-paper/85 transition-colors hover:bg-paper hover:text-ink",
+        "grid h-11 w-11 place-items-center font-mono text-[11px] text-paper/85 transition-colors hover:bg-paper hover:text-ink",
         danger && "hover:bg-ember hover:text-paper"
       )}
     >

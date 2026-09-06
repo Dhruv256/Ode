@@ -1,0 +1,58 @@
+[
+  {
+    "path": "/anolaa-25",
+    "status": 200,
+    "clerkHandshake": false,
+    "signIn": false,
+    "recipient": true
+  },
+  {
+    "path": "/missing-recipient-qa",
+    "status": 404,
+    "clerkHandshake": false,
+    "signIn": false,
+    "recipient": false
+  },
+  {
+    "path": "/create",
+    "status": 404,
+    "clerkHandshake": true,
+    "signIn": false,
+    "recipient": false
+  },
+  {
+    "path": "/dashboard",
+    "status": 404,
+    "clerkHandshake": true,
+    "signIn": false,
+    "recipient": false
+  },
+  {
+    "path": "/api/websites",
+    "status": 401,
+    "clerkHandshake": true,
+    "signIn": true,
+    "recipient": false
+  },
+  {
+    "path": "/api/projects",
+    "status": 401,
+    "clerkHandshake": true,
+    "signIn": true,
+    "recipient": false
+  },
+  {
+    "path": "/qa/media",
+    "status": 404,
+    "clerkHandshake": false,
+    "signIn": false,
+    "recipient": false
+  },
+  {
+    "path": "/qa/templates",
+    "status": 404,
+    "clerkHandshake": false,
+    "signIn": false,
+    "recipient": false
+  }
+]

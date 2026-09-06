@@ -1,0 +1,162 @@
+[
+  {
+    "template": "contact-sheet",
+    "width": 390,
+    "height": 9233,
+    "overflow": false,
+    "images": 22,
+    "broken": 0,
+    "seen": [
+      "qa-photo-0",
+      "qa-photo-1",
+      "qa-photo-2",
+      "qa-photo-3",
+      "qa-photo-4",
+      "qa-photo-9",
+      "qa-photo-8",
+      "qa-photo-11",
+      "qa-photo-10",
+      "qa-photo-5",
+      "qa-photo-6",
+      "qa-photo-7"
+    ],
+    "carousel": [
+      {
+        "height": 365.59375,
+        "photos": [
+          {
+            "w": 318,
+            "h": 212
+          }
+        ]
+      },
+      {
+        "height": 365.59375,
+        "photos": [
+          {
+            "w": 318,
+            "h": 212
+          }
+        ]
+      },
+      {
+        "height": 365.59375,
+        "photos": [
+          {
+            "w": 318,
+            "h": 212
+          }
+        ]
+      },
+      {
+        "height": 365.59375,
+        "photos": [
+          {
+            "w": 318,
+            "h": 212
+          }
+        ]
+      },
+      {
+        "height": 365.59375,
+        "photos": [
+          {
+            "w": 318,
+            "h": 212
+          }
+        ]
+      }
+    ],
+    "errors": []
+  },
+  {
+    "template": "contact-sheet",
+    "width": 1440,
+    "height": 8927,
+    "overflow": false,
+    "images": 23,
+    "broken": 0,
+    "seen": [
+      "qa-photo-0",
+      "qa-photo-1",
+      "qa-photo-5",
+      "qa-photo-2",
+      "qa-photo-3",
+      "qa-photo-4",
+      "qa-photo-9",
+      "qa-photo-8",
+      "qa-photo-11",
+      "qa-photo-10",
+      "qa-photo-6",
+      "qa-photo-7"
+    ],
+    "carousel": [
+      {
+        "height": 587.171875,
+        "photos": [
+          {
+            "w": 640.8125,
+            "h": 427.203125
+          },
+          {
+            "w": 640.8125,
+            "h": 427.203125
+          }
+        ]
+      },
+      {
+        "height": 587.171875,
+        "photos": [
+          {
+            "w": 640.8125,
+            "h": 427.203125
+          },
+          {
+            "w": 640.8125,
+            "h": 427.203125
+          }
+        ]
+      },
+      {
+        "height": 587.171875,
+        "photos": [
+          {
+            "w": 640.8125,
+            "h": 427.203125
+          },
+          {
+            "w": 640.8125,
+            "h": 427.203125
+          }
+        ]
+      },
+      {
+        "height": 587.171875,
+        "photos": [
+          {
+            "w": 640.8125,
+            "h": 427.203125
+          },
+          {
+            "w": 640.8125610351562,
+            "h": 427.203125
+          }
+        ]
+      },
+      {
+        "height": 587.171875,
+        "photos": [
+          {
+            "w": 640.8125,
+            "h": 427.203125
+          },
+          {
+            "w": 640.8125,
+            "h": 427.203125
+          }
+        ]
+      }
+    ],
+    "errors": []
+  }
+]

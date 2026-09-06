@@ -5,6 +5,7 @@ const isCreatorRoute = createRouteMatcher([
   "/dashboard(.*)",
   "/create(.*)",
   "/project(.*)",
+  "/settings(.*)",
   "/api/media/sign(.*)",
   "/api/projects(.*)",
   "/api/websites(.*)",
@@ -36,8 +37,10 @@ export default clerkIsConfigured
 
 export const config = {
   matcher: [
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    // Public recipient pages must never enter Clerk's development handshake.
+    "/", "/dashboard/:path*", "/create/:path*", "/settings/:path*", "/project/:path*",
+    "/sign-in/:path*", "/sign-up/:path*",
+    "/api/media/sign/:path*", "/api/projects/:path*", "/api/websites/:path*", "/api/hampers/:path*",
     "/__clerk/:path*",
-    "/(api|trpc)(.*)",
   ],
 };

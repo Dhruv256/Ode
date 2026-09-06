@@ -1,0 +1,81 @@
+[
+  {
+    "path": "/anolaa-25",
+    "width": 390,
+    "url": "http://localhost:3201/anolaa-25",
+    "recipient": 1,
+    "navigation": [
+      "http://localhost:3201/anolaa-25"
+    ]
+  },
+  {
+    "path": "/create",
+    "width": 390,
+    "url": "http://localhost:3201/sign-in?redirect_url=http%3A%2F%2Flocalhost%3A3201%2Fcreate",
+    "recipient": 0,
+    "navigation": [
+      "http://localhost:3201/create",
+      "https://proven-aphid-2624.clerk.accounts.dev/v1/client/handshake",
+      "http://localhost:3201/create",
+      "http://localhost:3201/create",
+      "https://proven-aphid-2624.clerk.accounts.dev/v1/client/handshake",
+      "http://localhost:3201/create",
+      "http://localhost:3201/create",
+      "https://proven-aphid-2624.clerk.accounts.dev/v1/client/handshake",
+      "http://localhost:3201/create",
+      "http://localhost:3201/create",
+      "https://proven-aphid-2624.clerk.accounts.dev/v1/client/handshake",
+      "http://localhost:3201/create",
+      "http://localhost:3201/create",
+      "http://localhost:3201/sign-in"
+    ]
+  },
+  {
+    "path": "/dashboard",
+    "width": 390,
+    "url": "http://localhost:3201/sign-in?redirect_url=http%3A%2F%2Flocalhost%3A3201%2Fdashboard",
+    "recipient": 0,
+    "navigation": [
+      "http://localhost:3201/dashboard",
+      "http://localhost:3201/sign-in"
+    ]
+  },
+  {
+    "path": "/anolaa-25",
+    "width": 1440,
+    "url": "http://localhost:3201/anolaa-25",
+    "recipient": 1,
+    "navigation": [
+      "http://localhost:3201/anolaa-25"
+    ]
+  },
+  {
+    "path": "/create",
+    "width": 1440,
+    "url": "http://localhost:3201/sign-in?redirect_url=http%3A%2F%2Flocalhost%3A3201%2Fcreate",
+    "recipient": 0,
+    "navigation": [
+      "http://localhost:3201/create",
+      "https://proven-aphid-2624.clerk.accounts.dev/v1/client/handshake",
+      "http://localhost:3201/create",
+      "http://localhost:3201/create",
+      "https://proven-aphid-2624.clerk.accounts.dev/v1/client/handshake",
+      "http://localhost:3201/create",
+      "http://localhost:3201/create",
+      "https://proven-aphid-2624.clerk.accounts.dev/v1/client/handshake",
+      "http://localhost:3201/create",
+      "http://localhost:3201/create",
+      "http://localhost:3201/sign-in"
+    ]
+  },
+  {
+    "path": "/dashboard",
+    "width": 1440,
+    "url": "http://localhost:3201/sign-in?redirect_url=http%3A%2F%2Flocalhost%3A3201%2Fdashboard",
+    "recipient": 0,
+    "navigation": [
+      "http://localhost:3201/dashboard",
+      "http://localhost:3201/sign-in"
+    ]
+  }
+]
