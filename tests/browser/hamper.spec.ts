@@ -66,6 +66,8 @@ test("creator adds ten types, edits, reorders, previews, and publishes", async (
   await page.getByRole("button", { name: "Save & continue" }).click();
   await page.getByRole("button", { name: /Buttercup Picnic/ }).click(); await page.getByRole("button", { name: "Save & continue" }).click();
   await page.getByRole("button", { name: /Scene Open into/ }).click(); await page.getByRole("button", { name: "Save & continue" }).click();
+  await expect(page.getByText("0 / 120", { exact:true })).toBeVisible();
+  await expect(page.getByRole("button", { name:"Note", exact:true }).getByText("0 / 20", { exact:true })).toBeVisible();
   const textInputs: Record<string, Record<string,string>> = { Note:{ "Your note":"Hello, lovely person." }, Song:{ "Song URL":"https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT" }, Video:{ "YouTube or Vimeo URL":"https://youtu.be/dQw4w9WgXcQ" }, Gift:{ "Gift URL":"https://example.com/gift" }, Location:{ "Place name":"Our cafe", "Google Maps URL":"https://share.google/aGoogleMapsShare123" }, "Coupon / Pass":{ "Coupon title":"Coffee together" }, News:{ "Article URL":"https://example.com/article" } };
   const categoryType: Record<string,string> = { "Coupon / Pass":"coupon" };
   for (const label of ["Note","Photo","Song","Video","Voice","Drawing","Gift","Location","Coupon / Pass","News"]) {
@@ -79,6 +81,8 @@ test("creator adds ten types, edits, reorders, previews, and publishes", async (
     await dialog.getByRole("button", { name:"Tuck it inside" }).click(); await expect(dialog).toHaveCount(0); await noOverflow(page);
     expect(stored.items.map(item => item.type)).toContain(categoryType[label] || label.toLowerCase());
   }
+  await expect(page.getByText("10 / 120", { exact:true })).toBeVisible();
+  await expect(page.getByRole("button", { name:"Location", exact:true }).getByText("1 / 20", { exact:true })).toBeVisible();
   await expect(page.getByRole("list", { name:"Inside your hamper" }).locator("li")).toHaveCount(10);
   await page.getByRole("listitem").first().getByRole("button", { name:"Edit",exact:true }).click(); await page.getByLabel("Your note").fill("Edited with love."); await page.getByRole("button", { name:"Keep these changes" }).click();
   await page.getByRole("button", { name:"Save & continue" }).click();

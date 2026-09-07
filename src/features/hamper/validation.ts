@@ -100,7 +100,9 @@ export function validateContent(value: unknown, publish = false): HamperContent 
   const h = record(value);
   const recipient = string(h.recipient, 80, publish), sender = string(h.sender, 80, publish), message = string(h.message, 500);
   if (typeof h.theme !== "string" || !Object.hasOwn(HAMPER_THEMES, h.theme) || !["burst", "scene"].includes(String(h.openingStyle))) throw new ValidationError("Choose a wrapping and opening style.");
-  if (!Array.isArray(h.items) || h.items.length > HAMPER_LIMITS.maxItemsPerHamper || publish && !h.items.length) throw new ValidationError(`Tuck in between 1 and ${HAMPER_LIMITS.maxItemsPerHamper} items before publishing.`);
+  if (!Array.isArray(h.items)) throw new ValidationError("This hamper needs a list of keepsakes.");
+  if (h.items.length > HAMPER_LIMITS.maxItemsPerHamper) throw new ValidationError(`This hamper can hold up to ${HAMPER_LIMITS.maxItemsPerHamper} items.`);
+  if (publish && !h.items.length) throw new ValidationError(`Tuck in between 1 and ${HAMPER_LIMITS.maxItemsPerHamper} items before publishing.`);
   const counts = new Map<ItemType, number>(), ids = new Set<string>();
   const items = h.items.map((value, index) => {
     const item = validateItem(value, index), count = (counts.get(item.type) || 0) + 1;

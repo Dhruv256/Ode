@@ -23,6 +23,15 @@ export async function inspectStudioSchema(db) {
   }
   const missing = Object.entries(required).flatMap(([table, names]) => names.filter(name => !columns.get(table)?.has(name)).map(name => `${table}.${name}`));
   const legacy = columns.get("digital_hampers")?.has("recipient_name") && !columns.get("digital_hampers")?.has("recipient");
+  const currentHamperShape = required.hamper_items.every(name => columns.get("hamper_items")?.has(name));
+  if (currentHamperShape) {
+    const [limits] = await db.query(`select
+      (select pg_get_constraintdef(c.oid) from pg_constraint c where c.conrelid=to_regclass('public.hamper_items') and c.conname='hamper_items_position_check') as position_check,
+      (select pg_get_functiondef(p.oid) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='hamper_quota_guard' limit 1) as quota_guard`);
+    const positionCheck = String(limits?.position_check ?? "").replace(/\s+/g, "");
+    const quotaGuard = String(limits?.quota_guard ?? "").replace(/\s+/g, "");
+    if (!positionCheck.includes("119") || !quotaGuard.includes(">=120") || !quotaGuard.includes(">=20")) missing.push("hamper_items.object_limits");
+  }
   const counts = {};
   if (legacy) for (const table of legacyTables) {
     if (!columns.has(table)) throw new Error(`Incomplete legacy schema: ${table} is missing. No changes were made.`);
@@ -58,11 +67,12 @@ export async function repairStudioSchema(db) {
     await db.exec(`create schema ${archive}; revoke all on schema ${archive} from public,anon,authenticated;`);
     for (const table of legacyTables) await db.exec(`alter table public.${table} set schema ${archive}`);
     await db.exec(`revoke all on all tables in schema ${archive} from public,anon,authenticated; revoke all on all sequences in schema ${archive} from public,anon,authenticated;`);
-  } else if (partial && state.missing.some(name => !name.startsWith("birthday_projects."))) {
+  } else if (partial && state.missing.some(name => !name.startsWith("birthday_projects.") && name !== "hamper_items.object_limits")) {
     throw new Error("Unrecognized partial hamper schema. No changes were made.");
   }
   await migration(db, "003_studio_ownership.sql");
   if (state.legacy || !partial) await migration(db, "004_digital_hampers.sql");
+  await migration(db, "007_hamper_20_per_type_120_total.sql");
   const after = await inspectStudioSchema(db);
   if (!after.ready) throw new Error(`Repair verification failed: ${after.missing.join(", ")}`);
   const afterWebsites = (await db.query(websiteFingerprint))[0];

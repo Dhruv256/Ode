@@ -1,7 +1,9 @@
 import type { HamperTheme, ItemType } from "./types";
 
+export const MAX_ITEMS_PER_TYPE = 20;
+export const MAX_TOTAL_ITEMS_PER_HAMPER = 120;
 export const HAMPER_LIMITS = {
-  maxActiveHampersPerUser: 10, maxItemsPerType: 10, maxItemsPerHamper: 60,
+  maxActiveHampersPerUser: 10, maxItemsPerType: MAX_ITEMS_PER_TYPE, maxItemsPerHamper: MAX_TOTAL_ITEMS_PER_HAMPER,
   maxImageBytes: 5 * 1024 * 1024, maxAudioBytes: 2 * 1024 * 1024,
   maxTotalAssetBytesPerHamper: 25 * 1024 * 1024, maxTotalHamperAssetBytesPerUser: 200 * 1024 * 1024,
   maxRecordingSeconds: 90, maxStrokes: 200, maxPoints: 12000,

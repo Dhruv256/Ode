@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { HAMPER_LIMITS, HAMPER_ITEM_REGISTRY, ITEM_TYPES } from "../src/features/hamper/config";
+import { HAMPER_LIMITS, HAMPER_ITEM_REGISTRY, ITEM_TYPES, MAX_ITEMS_PER_TYPE, MAX_TOTAL_ITEMS_PER_HAMPER } from "../src/features/hamper/config";
 import { musicEmbed, safeUrl, suggestSlug, validateContent, validateFile, validateItem, validateSlug, videoEmbed } from "../src/features/hamper/validation";
 import { nextOpeningStage } from "../src/features/hamper/recipient/opening";
 import { fixtureHamper, fixtureItem } from "./fixtures";
@@ -28,9 +28,20 @@ describe("hamper validation", () => {
     expect(() => validateFile("photo", 100, "video/mp4")).toThrow();
     expect(() => validateFile("photo", 100, "image/svg+xml")).toThrow();
   });
-  it.each(ITEM_TYPES)("enforces %s count", type => { const h = fixtureHamper(); h.items = Array.from({ length: HAMPER_ITEM_REGISTRY[type].max + 1 }, (_, i) => fixtureItem(type, i)); expect(() => validateContent(h)).toThrow("hold up to"); });
-  it("enforces total count, unique IDs, and required published content", () => {
-    const h = fixtureHamper(); expect(() => validateContent({ ...h, items: Array(61).fill(h.items[0]) })).toThrow();
+  it.each(ITEM_TYPES)("allows 20 %s items and rejects item 21 gracefully", type => {
+    const h = fixtureHamper();
+    const twenty = Array.from({ length: MAX_ITEMS_PER_TYPE }, (_, i) => fixtureItem(type, i));
+    expect(validateContent({ ...h, items: twenty }).items).toHaveLength(20);
+    expect(() => validateContent({ ...h, items: [...twenty, fixtureItem(type, 20)] })).toThrow("up to 20");
+  });
+  it("allows 120 total items across categories and rejects item 121 gracefully", () => {
+    const h = fixtureHamper();
+    const items = Array.from({ length: MAX_TOTAL_ITEMS_PER_HAMPER }, (_, index) => fixtureItem(ITEM_TYPES[Math.floor(index / 12)], index));
+    expect(validateContent({ ...h, items }).items).toHaveLength(120);
+    expect(() => validateContent({ ...h, items: [...items, fixtureItem("note", 120)] })).toThrow("up to 120 items");
+  });
+  it("enforces unique IDs and required published content", () => {
+    const h = fixtureHamper();
     expect(() => validateContent({ ...h, items: [h.items[0], h.items[0]] })).toThrow("own ID");
     expect(() => validateContent({ ...h, items: [] }, true)).toThrow(); expect(() => validateContent({ ...h, recipient: "" }, true)).toThrow();
   });
@@ -38,9 +49,14 @@ describe("hamper validation", () => {
   it("accepts the fully art-directed Proper Retro hamper theme", () => {
     expect(validateContent({ ...fixtureHamper(), theme: "proper-retro" }).theme).toBe("proper-retro");
   });
-  it("uses one 10-per-type and 60-total rule", () => {
-    expect(HAMPER_LIMITS.maxItemsPerType).toBe(10); expect(HAMPER_LIMITS.maxItemsPerHamper).toBe(60);
-    expect(new Set(ITEM_TYPES.map(type => HAMPER_ITEM_REGISTRY[type].max))).toEqual(new Set([10]));
+  it("uses one 20-per-type and 120-total rule without changing storage quotas", () => {
+    expect(HAMPER_LIMITS.maxItemsPerType).toBe(MAX_ITEMS_PER_TYPE); expect(MAX_ITEMS_PER_TYPE).toBe(20);
+    expect(HAMPER_LIMITS.maxItemsPerHamper).toBe(MAX_TOTAL_ITEMS_PER_HAMPER); expect(MAX_TOTAL_ITEMS_PER_HAMPER).toBe(120);
+    expect(new Set(ITEM_TYPES.map(type => HAMPER_ITEM_REGISTRY[type].max))).toEqual(new Set([20]));
+    expect(HAMPER_LIMITS.maxImageBytes).toBe(5 * 1024 * 1024);
+    expect(HAMPER_LIMITS.maxAudioBytes).toBe(2 * 1024 * 1024);
+    expect(HAMPER_LIMITS.maxTotalAssetBytesPerHamper).toBe(25 * 1024 * 1024);
+    expect(HAMPER_LIMITS.maxTotalHamperAssetBytesPerUser).toBe(200 * 1024 * 1024);
   });
   it("keeps valid visual variants and rejects invented ones", () => {
     const item = fixtureItem("note"); item.payload.visualVariant = "postcard";

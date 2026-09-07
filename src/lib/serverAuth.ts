@@ -1,5 +1,6 @@
 import "server-only";
 import { auth } from "@clerk/nextjs/server";
+import { HAMPER_LIMITS } from "@/features/hamper/config";
 
 export class RequestError extends Error {
   constructor(message: string, public status = 400) { super(message); }
@@ -23,6 +24,9 @@ export function requestError(error: unknown) {
   if (error instanceof RequestError) return Response.json({ error: error.message }, { status: error.status });
   const code = (error as { code?: string }).code;
   if (code === "23505") return Response.json({ error: "That link is already taken. Try another name." }, { status: 409 });
+  const constraint = (error as { constraint_name?: string }).constraint_name;
+  if (code === "23514" && constraint === "hamper_items_type_cap") return Response.json({ error: `This hamper can hold up to ${HAMPER_LIMITS.maxItemsPerType} items in each category.` }, { status: 422 });
+  if (code === "23514" && (constraint === "hamper_items_total_cap" || constraint === "hamper_items_position_check")) return Response.json({ error: `This hamper can hold up to ${HAMPER_LIMITS.maxItemsPerHamper} items.` }, { status: 422 });
   if (code === "23514") return Response.json({ error: "This would exceed the hamper's limits. Remove an item or choose a smaller file." }, { status: 422 });
   const diagnostic = error as { table_name?: string; column_name?: string; constraint_name?: string };
   // PostgreSQL's detail/message can contain private row values. Only log

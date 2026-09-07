@@ -3,7 +3,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { readFileSync } from "node:fs";
 import { taggedDatabase } from "./dbAdapter";
 import { fixtureHamper, fixtureItem } from "./fixtures";
-import type { HamperContent } from "../src/features/hamper/types";
+import type { HamperContent, ItemType } from "../src/features/hamper/types";
 const state = vi.hoisted(() => ({ db: null as unknown, owner: "user_alice", cookies: new Map<string, string>() }));
 vi.mock("@/lib/database", () => ({ database: () => state.db }));
 vi.mock("@clerk/nextjs/server", () => ({ auth: async () => ({ userId: state.owner }) }));
@@ -20,6 +20,7 @@ import { GET as ownerGet } from "../src/app/api/hampers/[id]/route";
 import { POST as eventPost } from "../src/app/api/hamper/[slug]/events/route";
 import { POST as uploadStart, PUT as uploadFinish } from "../src/app/api/hampers/[id]/assets/route";
 import { inspectAsset } from "../src/features/hamper/server/storage";
+import { requestError } from "../src/lib/serverAuth";
 let db: PGlite;
 const plainContent = (): HamperContent => ({ ...fixtureHamper(), items: [{ ...fixtureItem("note"), id: crypto.randomUUID() }] });
 async function pack(published = false, pin?: string) {
@@ -31,7 +32,7 @@ beforeAll(async () => {
   process.env.HAMPER_ACCESS_SECRET = "test-only-secret-with-at-least-32-characters"; process.env.NEXT_PUBLIC_CLERK_ENABLED = "true";
   db = new PGlite(); state.db = taggedDatabase(db);
   await db.exec("create role anon; create role authenticated; create schema storage; create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]); create table storage.objects(id uuid primary key,bucket_id text);");
-  for (const file of ["001_published_birthday_projects.sql", "003_studio_ownership.sql", "004_digital_hampers.sql"]) await db.exec(readFileSync(`database/migrations/${file}`, "utf8"));
+  for (const file of ["001_published_birthday_projects.sql", "003_studio_ownership.sql", "004_digital_hampers.sql", "005_proper_retro_hamper.sql", "006_hamper_object_limits.sql", "007_hamper_20_per_type_120_total.sql"]) await db.exec(readFileSync(`database/migrations/${file}`, "utf8"));
 });
 beforeEach(async () => { state.owner = "user_alice"; state.cookies.clear(); await db.exec("delete from digital_hampers; delete from hamper_access_attempts; delete from birthday_projects;"); });
 afterAll(async () => { await db.close(); });
@@ -54,14 +55,35 @@ describe("real PostgreSQL schema and server access", () => {
     const token = accessToken("link", "version", Date.now() + 10000); expect(validAccessToken(token, "link", "version")).toBe(true); expect(validAccessToken(token, "link", "different")).toBe(false); expect(validAccessToken(token + "x", "link", "version")).toBe(false); expect(validAccessToken(accessToken("link", "version", Date.now() - 1), "link", "version")).toBe(false);
   });
   it("rate limits after five PIN tries in a shared database", async () => { for (let i = 0; i < 5; i++) await rateLimit("pin-test", 5, 900); await expect(rateLimit("pin-test", 5, 900)).rejects.toThrow("too many"); });
+  it("returns graceful item-limit responses for database race protection", async () => {
+    const category = requestError({ code: "23514", constraint_name: "hamper_items_type_cap" });
+    expect(category.status).toBe(422); expect(await category.json()).toEqual({ error: "This hamper can hold up to 20 items in each category." });
+    const total = requestError({ code: "23514", constraint_name: "hamper_items_total_cap" });
+    expect(total.status).toBe(422); expect(await total.json()).toEqual({ error: "This hamper can hold up to 120 items." });
+  });
   it("enforces the 10 hamper cap in the database", async () => { for (let i = 0; i < 10; i++) await createHamper("user_alice"); await expect(createHamper("user_alice")).rejects.toThrow("10 hampers"); await expect(db.query("insert into digital_hampers(owner_id) values('user_alice')")).rejects.toThrow("10 active"); });
   it("enforces database type/item caps and per-hamper storage limits", async () => {
     const { id } = await pack();
-    for (let i = 1; i < 10; i++) await db.query("insert into hamper_items(id,hamper_id,type,position,payload) values(gen_random_uuid(),$1,'note',$2,'{}')", [id, i]);
-    await expect(db.query("insert into hamper_items(id,hamper_id,type,position,payload) values(gen_random_uuid(),$1,'note',10,'{}')", [id])).rejects.toThrow("type cap");
+    for (let i = 1; i < 20; i++) await db.query("insert into hamper_items(id,hamper_id,type,position,payload) values(gen_random_uuid(),$1,'note',$2,'{}')", [id, i]);
+    expect((await db.query("select count(*)::int count from hamper_items where hamper_id=$1 and type='note'", [id])).rows).toEqual([{ count: 20 }]);
+    await expect(db.query("insert into hamper_items(id,hamper_id,type,position,payload) values(gen_random_uuid(),$1,'note',20,'{}')", [id])).rejects.toThrow("Per-category item limit of 20 reached");
     for (let i = 0; i < 5; i++) await db.query("insert into hamper_assets(hamper_id,owner_id,item_id,path,kind,mime,asset_bytes) values($1,'user_alice',gen_random_uuid(),$2,'photo','image/jpeg',5242880)", [id, `asset-${i}`]);
     await expect(db.query("insert into hamper_assets(hamper_id,owner_id,item_id,path,kind,mime,asset_bytes) values($1,'user_alice',gen_random_uuid(),'overflow','photo','image/jpeg',1)", [id])).rejects.toThrow("storage cap");
     await expect(db.query("insert into hamper_assets(hamper_id,owner_id,item_id,path,kind,mime,asset_bytes) values($1,'user_bob',gen_random_uuid(),'stolen','photo','image/jpeg',1)", [id])).rejects.toThrow();
+  });
+  it("saves, orders and duplicates 120 items but rejects item 121", async () => {
+    const id = await createHamper("user_alice"), row = await ownedHamper("user_alice", id);
+    const types: ItemType[] = ["note", "song", "video", "drawing", "gift", "location"];
+    const items = Array.from({ length: 120 }, (_, index) => fixtureItem(types[Math.floor(index / 20)], index));
+    const saved = await saveHamper("user_alice", id, { ...fixtureHamper(), items }, { updatedAt: row.updated_at.toISOString() });
+    expect(saved.items).toHaveLength(120);
+    expect(saved.items.map(item => item.position)).toEqual(Array.from({ length: 120 }, (_, index) => index));
+    await expect(saveHamper("user_alice", id, { ...saved, items: [...saved.items, fixtureItem("coupon", 120)] }, { updatedAt: saved.updatedAt })).rejects.toThrow("up to 120 items");
+    await expect(db.query("insert into hamper_items(id,hamper_id,type,position,payload) values(gen_random_uuid(),$1,'coupon',120,'{}')", [id])).rejects.toThrow("Hamper item limit of 120 reached");
+    const copyId = await duplicateHamper("user_alice", id), copy = await ownerDto(await ownedHamper("user_alice", copyId));
+    expect(copy.items).toHaveLength(120);
+    expect(copy.items.map(item => item.position)).toEqual(Array.from({ length: 120 }, (_, index) => index));
+    expect(new Set(copy.items.map(item => item.id))).not.toEqual(new Set(saved.items.map(item => item.id)));
   });
   it("enforces 200 MB across the owner's hampers", async () => {
     for (let h = 0; h < 8; h++) { const id = await createHamper("user_alice"); for (let i = 0; i < 5; i++) await db.query("insert into hamper_assets(hamper_id,owner_id,item_id,path,kind,mime,asset_bytes) values($1,'user_alice',gen_random_uuid(),$2,'photo','image/jpeg',5242880)", [id, `quota-${h}-${i}`]); }

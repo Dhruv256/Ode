@@ -5,7 +5,7 @@ select pg_advisory_xact_lock(hashtextextended('ode:digital-hampers-migration',0)
 set local lock_timeout='10s';
 
 alter table public.hamper_items drop constraint if exists hamper_items_position_check;
-alter table public.hamper_items add constraint hamper_items_position_check check(position between 0 and 59);
+alter table public.hamper_items add constraint hamper_items_position_check check(position between 0 and 119);
 
 create or replace function public.hamper_quota_guard() returns trigger language plpgsql set search_path=public as $$
 declare used bigint;
@@ -22,8 +22,8 @@ begin
     if used+new.asset_bytes>26214400 then raise exception 'Hamper storage cap' using errcode='23514'; end if;
   else
     perform 1 from digital_hampers where id=new.hamper_id for update;
-    if (select count(*) from hamper_items where hamper_id=new.hamper_id and id<>new.id)>=60 then raise exception 'Item cap' using errcode='23514'; end if;
-    if (select count(*) from hamper_items where hamper_id=new.hamper_id and type=new.type and id<>new.id)>=10 then raise exception 'Item type cap' using errcode='23514'; end if;
+    if (select count(*) from hamper_items where hamper_id=new.hamper_id and id<>new.id)>=120 then raise exception 'Hamper item limit of 120 reached' using errcode='23514',constraint='hamper_items_total_cap'; end if;
+    if (select count(*) from hamper_items where hamper_id=new.hamper_id and type=new.type and id<>new.id)>=20 then raise exception 'Per-category item limit of 20 reached' using errcode='23514',constraint='hamper_items_type_cap'; end if;
     if new.type in ('photo','voice') then
       if not exists(select 1 from hamper_assets where id::text=new.payload->>'assetId' and hamper_id=new.hamper_id and item_id=new.id and kind=new.type and state='ready' and asset_bytes=new.asset_bytes) then
         raise exception 'Asset ownership or bytes mismatch' using errcode='23514'; end if;

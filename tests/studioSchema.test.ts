@@ -101,6 +101,34 @@ describe("studio schema repair", () => {
     for (let i = 0; i < 9; i++) await db.query("insert into digital_hampers(owner_id) values('owner')");
     await expect(db.query("insert into digital_hampers(owner_id) values('owner')")).rejects.toThrow("At most 10");
   });
+  it("upgrades object limits without changing an existing hamper", async () => {
+    await db.exec(migration("003_studio_ownership.sql"));
+    await db.exec(migration("004_digital_hampers.sql"));
+    const [{ id }] = (await db.query<{ id: string }>("insert into digital_hampers(owner_id,recipient,sender) values('owner','Keep me','Sender') returning id")).rows;
+    await db.query("insert into hamper_items(id,hamper_id,type,position,payload) values(gen_random_uuid(),$1,'note',0,'{\"body\":\"Keep this note\"}')", [id]);
+    const before = (await db.query("select * from digital_hampers where id=$1", [id])).rows;
+    const beforeItems = (await db.query("select * from hamper_items where hamper_id=$1", [id])).rows;
+    await db.exec(migration("007_hamper_20_per_type_120_total.sql"));
+    await db.exec(migration("007_hamper_20_per_type_120_total.sql"));
+    expect((await db.query("select * from digital_hampers where id=$1", [id])).rows).toEqual(before);
+    expect((await db.query("select * from hamper_items where hamper_id=$1", [id])).rows).toEqual(beforeItems);
+    const [{ definition }] = (await db.query<{ definition: string }>("select pg_get_constraintdef(oid) definition from pg_constraint where conrelid='hamper_items'::regclass and conname='hamper_items_position_check'")).rows;
+    expect(definition).toContain("119");
+    expect((await db.query("select count(*)::int count from pg_trigger where tgname='hamper_item_quota'")).rows).toEqual([{ count: 1 }]);
+  });
+  it("detects and repairs the previous object limits on a current populated schema", async () => {
+    await db.exec(migration("003_studio_ownership.sql"));
+    await db.exec(migration("004_digital_hampers.sql"));
+    const priorLimits = migration("007_hamper_20_per_type_120_total.sql").replace("0 and 119", "0 and 59").replace(">=120", ">=60").replace(">=20", ">=10");
+    await db.exec(priorLimits);
+    const [{ id }] = (await db.query<{ id: string }>("insert into digital_hampers(owner_id,recipient) values('owner','Existing hamper') returning id")).rows;
+    await db.query("insert into hamper_items(id,hamper_id,type,position,payload) values(gen_random_uuid(),$1,'note',0,'{\"body\":\"Preserve me\"}')", [id]);
+    expect((await inspectStudioSchema(adapter(db))).missing).toContain("hamper_items.object_limits");
+    expect(await repair()).toEqual({ changed: true, archived: false, websitesPreserved: 1 });
+    expect((await inspectStudioSchema(adapter(db))).ready).toBe(true);
+    expect((await db.query("select recipient from digital_hampers where id=$1", [id])).rows).toEqual([{ recipient: "Existing hamper" }]);
+    expect((await db.query("select payload from hamper_items where hamper_id=$1", [id])).rows).toEqual([{ payload: { body: "Preserve me" } }]);
+  });
   it("rejects the incompatible legacy schema before changing any table", async () => {
     await legacy();
     await expect(db.exec(migration("004_digital_hampers.sql"))).rejects.toThrow("Incompatible existing table");
