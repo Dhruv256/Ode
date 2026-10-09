@@ -14,6 +14,7 @@ interface OdeLogoProps {
   priority?: boolean;
   size?: number;
   variant?: OdeLogoVariant;
+  decorative?: boolean;
 }
 
 /** The supplied Ode artwork, sized for navigation rather than treated as a UI icon. */
@@ -22,10 +23,11 @@ export default function OdeLogo({
   priority = false,
   size = 44,
   variant = "primary",
+  decorative = false,
 }: OdeLogoProps) {
   return (
     <Image
-      alt="Ode"
+      alt={decorative ? '' : 'Ode'}
       className={className}
       draggable={false}
       height={size}

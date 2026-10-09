@@ -1,5 +1,7 @@
-import type { BirthdayProject, MemoryKey, TemplateId } from "@/lib/types";
+import type { BirthdayProject, MemoryKey, TemplateId, PhotoAsset } from "@/lib/types";
 import { MEMORY_QUESTIONS } from "@/lib/questions";
+import { personalAnswers } from '@/lib/personalization';
+import { allocatePhotoStory } from './roles';
 
 export interface TemplateInputUsageContract {
   identity: string; vibe: readonly string[]; interests: string; memories: Record<MemoryKey,string>;
@@ -39,12 +41,12 @@ export function validateCreatorInputs(provided:readonly SuppliedInput[],consumed
 }
 
 /** Inputs explicitly presented by the native story. OR-fallbacks are resolved, not assumed. */
-export function nativeMemoryKeys(p:BirthdayProject,id:TemplateId):Set<MemoryKey>{
-  const values=new Map(p.memories.filter(m=>!m.skipped&&m.answer.trim()).map(m=>[m.key,m.answer]));const used=new Set<MemoryKey>();
+export function nativeMemoryKeys(p:BirthdayProject,id:TemplateId,render?:{photos:PhotoAsset[];hero?:PhotoAsset;device?:string}):Set<MemoryKey>{
+  const values=new Map(personalAnswers(p.memories).map(m=>[m.key,m.answer]));const used=new Set<MemoryKey>();
   const add=(...keys:MemoryKey[])=>keys.forEach(k=>used.add(k));
   const either=(...keys:MemoryKey[])=>{const first=keys.find(k=>values.has(k));if(first)used.add(first);};
   add("birthday-message","ending-line");
-  if(id!=="after-dark"&&id!=="cut-and-paste")add("one-sentence");
+  if(!["after-dark","cut-and-paste","internet-person"].includes(id))add("one-sentence");
   // Permanent notes cover every remaining answer, including native conditional photo scenes.
   // Only unconditional, reachable text belongs here; photo-dependent branches are omitted.
   switch(id){
@@ -61,5 +63,21 @@ export function nativeMemoryKeys(p:BirthdayProject,id:TemplateId):Set<MemoryKey>
     case "poster-city":add("three-words","favorite-song","favorite-movie","always-says","unforgettable-memory");either("things-they-love","current-obsession");break;
     case "yearbook":add("three-words","favorite-song","favorite-movie","favorite-place","current-obsession","things-they-love","unforgettable-memory","always-says","inside-joke","known-for");break;
   }
+  const allocation=allocatePhotoStory(render?.photos??p.photos,render?.hero?.id);
+  if(id==='contact-sheet'){
+    if(allocation.hero){add('known-for');if(!allocation.hero.location)add('favorite-place');}
+    if(allocation.pair.length>1)add('favorite-movie');
+    if(allocation.reveal)either('inside-joke','current-obsession');
+    either('unforgettable-memory','always-says');
+  }
+  if(id==='cut-and-paste'&&allocation.reveal)add('known-for');
+  if(id==='cover-star'){
+    if(allocation.feature){add('known-for');either('favorite-place','things-they-love');}
+    if(render?.device==='desktop'&&[allocation.carousel,allocation.secondaryPair,allocation.montage].some(photos=>photos.length))add('three-words','favorite-song','favorite-movie','current-obsession');
+  }
+  if(id==='internet-person')either('unforgettable-memory','one-sentence');
+  if(id==='archive'&&allocation.reveal&&!allocation.reveal.caption)add('inside-joke');
+  if(id==='sunday-morning'&&allocation.feature)add('always-says');
+  if(id==='dreamscape'&&[allocation.carousel,allocation.secondaryPair,allocation.montage].some(photos=>photos.length))add('three-words','current-obsession','favorite-song');
   return used;
 }

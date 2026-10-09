@@ -21,6 +21,10 @@ import { POST as eventPost } from "../src/app/api/hamper/[slug]/events/route";
 import { POST as uploadStart, PUT as uploadFinish } from "../src/app/api/hampers/[id]/assets/route";
 import { inspectAsset } from "../src/features/hamper/server/storage";
 import { requestError } from "../src/lib/serverAuth";
+import { createAskOut, ownedAskOut, publicAskOut, recordResponse, saveAskOut } from "../src/features/askout/server/repository";
+import { GET as askOutList, POST as askOutCreate } from "../src/app/api/askouts/route";
+import { EMPTY_ASK_OUT } from "../src/features/askout/types";
+import { funnyDayOptions } from "../src/features/askout/config";
 let db: PGlite;
 const plainContent = (): HamperContent => ({ ...fixtureHamper(), items: [{ ...fixtureItem("note"), id: crypto.randomUUID() }] });
 async function pack(published = false, pin?: string) {
@@ -32,9 +36,9 @@ beforeAll(async () => {
   process.env.HAMPER_ACCESS_SECRET = "test-only-secret-with-at-least-32-characters"; process.env.NEXT_PUBLIC_CLERK_ENABLED = "true";
   db = new PGlite(); state.db = taggedDatabase(db);
   await db.exec("create role anon; create role authenticated; create schema storage; create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]); create table storage.objects(id uuid primary key,bucket_id text);");
-  for (const file of ["001_published_birthday_projects.sql", "003_studio_ownership.sql", "004_digital_hampers.sql", "005_proper_retro_hamper.sql", "006_hamper_object_limits.sql", "007_hamper_20_per_type_120_total.sql"]) await db.exec(readFileSync(`database/migrations/${file}`, "utf8"));
+  for (const file of ["001_published_birthday_projects.sql", "003_studio_ownership.sql", "004_digital_hampers.sql", "005_proper_retro_hamper.sql", "006_hamper_object_limits.sql", "007_hamper_20_per_type_120_total.sql", "008_ask_outs.sql"]) await db.exec(readFileSync(`database/migrations/${file}`, "utf8"));
 });
-beforeEach(async () => { state.owner = "user_alice"; state.cookies.clear(); await db.exec("delete from digital_hampers; delete from hamper_access_attempts; delete from birthday_projects;"); });
+beforeEach(async () => { state.owner = "user_alice"; state.cookies.clear(); await db.exec("delete from ask_outs; delete from digital_hampers; delete from hamper_access_attempts; delete from birthday_projects;"); });
 afterAll(async () => { await db.close(); });
 describe("real PostgreSQL schema and server access", () => {
   it("isolates owners in both repository and HTTP route", async () => { const { id } = await pack(); await expect(ownedHamper("user_bob", id)).rejects.toThrow("not found"); state.owner = "user_bob"; expect((await ownerGet(new Request("http://local"), { params: { id } })).status).toBe(404); });
@@ -60,6 +64,15 @@ describe("real PostgreSQL schema and server access", () => {
     expect(category.status).toBe(422); expect(await category.json()).toEqual({ error: "This hamper can hold up to 20 items in each category." });
     const total = requestError({ code: "23514", constraint_name: "hamper_items_total_cap" });
     expect(total.status).toBe(422); expect(await total.json()).toEqual({ error: "This hamper can hold up to 120 items." });
+  });
+  it("keeps server diagnostics while returning a generic database error to the browser", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const failure = Object.assign(new Error("Clerk middleware did not run"), { hint: "Match the owner route" });
+    const response = requestError(failure);
+    expect(response.status).toBe(500); expect(await response.json()).toEqual({ error: "Your changes could not be saved. Please try again." });
+    expect(log).toHaveBeenCalledWith("Studio request failed", expect.objectContaining({ name: "Error", message: "Clerk middleware did not run", hint: "Match the owner route", code: "unknown" }));
+    expect(requestError(null).status).toBe(500);
+    log.mockRestore();
   });
   it("enforces the 10 hamper cap in the database", async () => { for (let i = 0; i < 10; i++) await createHamper("user_alice"); await expect(createHamper("user_alice")).rejects.toThrow("10 hampers"); await expect(db.query("insert into digital_hampers(owner_id) values('user_alice')")).rejects.toThrow("10 active"); });
   it("enforces database type/item caps and per-hamper storage limits", async () => {
@@ -121,5 +134,38 @@ describe("real PostgreSQL schema and server access", () => {
     expect((await publishedProjectBySlug("ananya-one"))?.person.fullName).toBe("Ananya");
     expect((await publishedProjectBySlug("vaibhav-two"))?.person.fullName).toBe("Vaibhav");
     await expect(saveWebsite("user_bob", legacy, "legacy-secret")).rejects.toThrow("another creator");
+  });
+  it("returns an empty Ask Out list and only creates a validated intentional draft", async () => {
+    const empty = await askOutList();
+    expect(empty.status).toBe(200); expect(await empty.json()).toEqual({ askOuts: [] });
+    const invalid = await askOutCreate(new Request("http://local/api/askouts", { method: "POST", body: JSON.stringify({}) }));
+    expect(invalid.status).toBe(400); expect((await db.query("select * from ask_outs")).rows).toHaveLength(0);
+    const content = { ...EMPTY_ASK_OUT, recipientName: "Anoli" };
+    const created = await askOutCreate(new Request("http://local/api/askouts", { method: "POST", body: JSON.stringify({ content }) }));
+    expect(created.status).toBe(201); expect((await created.json()).recipientName).toBe("Anoli");
+    const listed = await askOutList();
+    expect(listed.status).toBe(200); expect((await listed.json()).askOuts).toHaveLength(1);
+  });
+  it("publishes Ask Outs independently, stores consent responses, and isolates owners", async () => {
+    const content = { ...EMPTY_ASK_OUT, recipientName: "Anoli", recipientTag: "anoli", creatorName: "Dhruv", openingMessage:"One private notification for Anoli.", recurringJoke:"Administrative mystery persists.", finalInvitationLine:"Date with Dhruv?", acceptedMessage:"Confirmed.", declineMessage:"No worries.", date: "2027-01-03", weekday: "Sunday", pickupTime: "19:00", pickupLocation: "Home", destination: "The Reading Room", mapAddress: "12 Book Street", activity: "Bookstore + coffee", dayOptions: funnyDayOptions("Sunday") };
+    const draft = await createAskOut("user_alice", content);
+    const published = await saveAskOut("user_alice", draft.id, content, { publish: true, slug: "anoli-x7k2", updatedAt: draft.updatedAt });
+    expect(published.status).toBe("published"); const publicCopy=await publicAskOut("anoli-x7k2");expect(publicCopy.recipientName).toBe("Anoli");expect(publicCopy.finalInvitationLine).toBe("Date with Dhruv?");expect(publicCopy.declineMessage).toBe("No worries.");
+    await expect(ownedAskOut("user_bob", draft.id)).rejects.toThrow("not found");
+    await recordResponse("anoli-x7k2", "viewed", "session-one"); await recordResponse("anoli-x7k2", "viewed", "session-one");
+    await recordResponse("anoli-x7k2", "accepted", "session-one", content.dayOptions[0].label, content.activity);
+    const refreshed = await ownedAskOut("user_alice", draft.id);
+    const dto = await (await import("../src/features/askout/server/repository")).ownerDto(refreshed);
+    expect(dto.responses).toMatchObject({ viewed: 1, accepted: 1, declined: 0 });
+    expect(dto.latestResponse?.selectedActivity).toBe("Bookstore + coffee");
+  });
+  it("never exposes an Ask Out draft and keeps decline a final valid response", async () => {
+    const draft = await createAskOut("user_alice", { ...EMPTY_ASK_OUT, recipientName: "Mira" });
+    await expect(publicAskOut(draft.slug)).rejects.toThrow("not available");
+    const content = { ...EMPTY_ASK_OUT, recipientName: "Mira", creatorName: "Sam", date: "2027-02-01", weekday: "Monday", pickupTime: "18:30", destination: "Cafe", mapAddress: "Cafe Street", activity: "Coffee", dayOptions: funnyDayOptions("Monday") };
+    const published = await saveAskOut("user_alice", draft.id, content, { publish: true, updatedAt: draft.updatedAt });
+    await recordResponse(published.slug, "declined", "session-no");
+    const dto = await (await import("../src/features/askout/server/repository")).ownerDto(await ownedAskOut("user_alice", draft.id));
+    expect(dto.responses.declined).toBe(1); expect(dto.responses.accepted).toBe(0);
   });
 });

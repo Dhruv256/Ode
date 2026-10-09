@@ -1,4 +1,5 @@
 import type { Theme } from "./types";
+import type { TemplateId } from '@/lib/types';
 
 export function contrastRatio(a:string,b:string):number {
   const luminance=(hex:string)=>{const clean=hex.replace('#','');const value=clean.length===3?clean.split('').map(c=>c+c).join(''):clean;const channels=[0,2,4].map(i=>parseInt(value.slice(i,i+2),16)/255).map(c=>c<=.04045?c/12.92:Math.pow((c+.055)/1.055,2.4));return .2126*channels[0]+.7152*channels[1]+.0722*channels[2];};
@@ -63,10 +64,20 @@ export function buildTheme(colors: string[]): Theme {
   };
 }
 
+/** Darkroom, cinema and nightlife retain their historical dark foundations. */
+export function buildTemplateTheme(colors: string[], id: TemplateId): Theme {
+  if (['contact-sheet','cinema','after-dark'].includes(id) && readableTextOn(colors[0] || '#fff') === '#14140f') {
+    return buildTheme(['#080807','#f4f0e7',...colors.slice(2)]);
+  }
+  return buildTheme(colors);
+}
+
 /** Convenience CSS custom-properties for a template root element. */
 export function themeVars(theme: Theme): Record<string, string> {
   return {
     "--tp-bg": theme.bg,
+    "--tp-paper": '#eee9df',
+    "--tp-ink": '#181512',
     "--tp-panel": theme.panel,
     "--tp-text": theme.text,
     "--tp-muted": theme.muted,

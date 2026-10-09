@@ -1,4 +1,5 @@
 "use client";
+import { resolveMemoryKey } from '@/lib/questionIds';
 
 import React, {
   createContext,
@@ -235,7 +236,7 @@ export function projectReducer(state: BirthdayProject, action: ProjectAction): B
 
     case "setMemoryAnswer": {
       const memories: Memory[] = [
-        ...state.memories.filter((m) => m.key !== action.key),
+        ...state.memories.filter((m) => (resolveMemoryKey(m.key) ?? resolveMemoryKey(m.id)) !== action.key),
         {
           id: uid(),
           key: action.key,
@@ -248,7 +249,7 @@ export function projectReducer(state: BirthdayProject, action: ProjectAction): B
 
     case "skipMemory": {
       const memories: Memory[] = [
-        ...state.memories.filter((m) => m.key !== action.key),
+        ...state.memories.filter((m) => (resolveMemoryKey(m.key) ?? resolveMemoryKey(m.id)) !== action.key),
         { id: uid(), key: action.key, answer: "", skipped: true },
       ];
       return touch({ ...state, memories });

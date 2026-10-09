@@ -4,7 +4,12 @@ const nextConfig = {
   reactStrictMode: true,
   images: { remotePatterns: [{ protocol: "https", hostname: "**.supabase.co", pathname: "/storage/v1/object/public/**" }] },
   async headers() {
-    return [{ source: "/hamper/:path*", headers: [
+    return [{source:'/:path*',headers:[
+      {key:'X-Content-Type-Options',value:'nosniff'},
+      {key:'X-Frame-Options',value:'DENY'},
+      {key:'Content-Security-Policy',value:"frame-ancestors 'none'; base-uri 'self'; object-src 'none'"},
+      {key:'Referrer-Policy',value:'strict-origin-when-cross-origin'},
+    ]}, { source: "/hamper/:path*", headers: [
       { key: "X-Robots-Tag", value: "noindex, nofollow, noarchive" },
       { key: "Referrer-Policy", value: "no-referrer" },
       { key: "Cache-Control", value: "private, no-store" },

@@ -1,0 +1,58 @@
+
+
+┌─ STRIX ─────────────────────────────────────────────────────────────────────┐
+│                                                                             │
+│  Penetration test initiated                                                 │
+│                                                                             │
+│  Target  C:\Users\dhruv\AppData\Local\Temp\ode-strix-focused-20261009       │
+│  Output  strix_runs/ode-strix-focused-20261009_ec13                         │
+│                                                                             │
+│  Vulnerabilities will be displayed in real-time.                            │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+
+2026-10-09 18:56:29.618 ERROR   ode-strix-focused-20261009_ec13 - strix.llm.compaction: compaction summary call failed for model openai/z-ai/glm-5.3
+Traceback (most recent call last):
+  File "httpx\_transports\default.py", line 101, in map_httpcore_exceptions
+  File "httpx\_transports\default.py", line 394, in handle_async_request
+  File "httpcore\_async\connection_pool.py", line 256, in handle_async_request
+  File "httpcore\_async\connection_pool.py", line 236, in handle_async_request
+  File "httpcore\_async\connection.py", line 101, in handle_async_request
+  File "httpcore\_async\connection.py", line 78, in handle_async_request
+  File "httpcore\_async\connection.py", line 124, in _connect
+  File "httpcore\_backends\auto.py", line 31, in connect_tcp
+  File "httpcore\_backends\anyio.py", line 113, in connect_tcp
+  File "contextlib.py", line 158, in __exit__
+  File "httpcore\_exceptions.py", line 14, in map_exceptions
+httpcore.ConnectError: [Errno 11001] getaddrinfo failed
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "openai\_base_client.py", line 1709, in request
+  File "openai\_client.py", line 1097, in _send_request
+  File "openai\_client.py", line 1075, in _send_with_auth_retry
+  File "openai\_base_client.py", line 1628, in _send_request
+  File "httpx\_client.py", line 1629, in send
+  File "httpx\_client.py", line 1657, in _send_handling_auth
+  File "httpx\_client.py", line 1694, in _send_handling_redirects
+  File "httpx\_client.py", line 1730, in _send_single_request
+  File "httpx\_transports\default.py", line 393, in handle_async_request
+  File "contextlib.py", line 158, in __exit__
+  File "httpx\_transports\default.py", line 118, in map_httpcore_exceptions
+httpx.ConnectError: [Errno 11001] getaddrinfo failed
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "strix\llm\compaction.py", line 314, in _summarize
+  File "strix\config\models.py", line 314, in get_response
+  File "strix\config\models.py", line 206, in get_response
+  File "strix\llm\request_log.py", line 1168, in get_response
+  File "agents\models\openai_chatcompletions.py", line 214, in get_response
+  File "agents\models\openai_chatcompletions.py", line 619, in _fetch_response
+  File "openai\resources\chat\completions\completions.py", line 2907, in create
+  File "openai\_base_client.py", line 1992, in post
+  File "openai\_base_client.py", line 1744, in request
+openai.APIConnectionError: Connection error.

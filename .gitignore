@@ -36,6 +36,10 @@ next-env.d.ts
 
 # log files
 *.txt
+!/public/robots.txt
+!/public/fonts/*-OFL.txt
+!/docs/security/strix-attempt.txt
+!/docs/security/strix-focused-attempt.txt
 
 .playwright/
 playwright-report/

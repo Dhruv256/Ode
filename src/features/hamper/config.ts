@@ -8,9 +8,10 @@ export const HAMPER_LIMITS = {
   maxTotalAssetBytesPerHamper: 25 * 1024 * 1024, maxTotalHamperAssetBytesPerUser: 200 * 1024 * 1024,
   maxRecordingSeconds: 90, maxStrokes: 200, maxPoints: 12000,
 } as const;
-export type ItemField = { key: string; label: string; max: number; required?: boolean; multiline?: boolean; kind?: "url" | "date" };
+export type ItemField = { key: string; label: string; recipientLabel?: string; max: number; required?: boolean; multiline?: boolean; kind?: "url" | "date" };
 export type ItemVariant = { id: string; label: string };
 export type ItemDefinition = { label: string; object: string; max: number; path: string; variants: readonly ItemVariant[]; fields: ItemField[]; media?: "photo" | "voice"; drawing?: boolean };
+export const HAMPER_MESSAGE_FIELD = { key: 'message', label: 'Opening message', recipientLabel: 'A message tucked in for you' } as const;
 export const HAMPER_ITEM_REGISTRY: Record<ItemType, ItemDefinition> = {
   note: { label: "Note", object: "A letter", max: HAMPER_LIMITS.maxItemsPerType, path: "M4 6h24v20H4z M4 7l12 10L28 7", variants: [{ id: "typewriter", label: "Typewriter" }, { id: "folded-letter", label: "Folded letter" }, { id: "postcard", label: "Postcard" }, { id: "notebook", label: "Notebook note" }], fields: [{ key: "title", label: "Little title", max: 80 }, { key: "body", label: "Your note", max: 1500, required: true, multiline: true }] },
   photo: { label: "Photo", object: "A camera", max: HAMPER_LIMITS.maxItemsPerType, path: "M5 3h22v26H5z M8 6h16v16H8z M9 20l5-7 4 4 3-3 3 6", variants: [{ id: "camera", label: "Camera" }, { id: "polaroids", label: "Polaroid stack" }, { id: "photo-strip", label: "Photo booth strip" }], media: "photo", fields: [{ key: "caption", label: "Caption", max: 300 }] },
@@ -24,6 +25,23 @@ export const HAMPER_ITEM_REGISTRY: Record<ItemType, ItemDefinition> = {
   news: { label: "News", object: "A newspaper", max: HAMPER_LIMITS.maxItemsPerType, path: "M4 3h24v26H4z M8 7h16 M8 11h16 M8 15h7v7H8z M19 15h5 M19 19h5 M8 25h16", variants: [{ id: "newspaper", label: "Folded newspaper" }, { id: "clipping", label: "Press clipping" }, { id: "magazine", label: "Magazine cutting" }], fields: [{ key: "url", label: "Article URL", max: 2048, required: true, kind: "url" }, { key: "headline", label: "Headline", max: 160 }, { key: "note", label: "A note from you", max: 500, multiline: true }] },
 };
 export const ITEM_TYPES = Object.keys(HAMPER_ITEM_REGISTRY) as ItemType[];
+
+/** Recipient copy is attached to the same schema fields the item editor uses. */
+const recipientLabels: Partial<Record<ItemType, Record<string, string>>> = {
+  note: { title: 'A letter for you', body: 'A note for you' }, photo: { caption: 'Written on this photo' },
+  song: { title: 'A song chosen for you' }, video: { caption: 'About this video' },
+  voice: { title: 'A voice note for you' }, drawing: { caption: 'About this drawing' },
+  gift: { note: 'A note with your gift' }, location: { place: 'A place chosen for you', note: 'Why this place?' },
+  coupon: { title: 'Your coupon', description: 'What this promise includes', code: 'Your coupon code' },
+  news: { headline: 'An article chosen for you', note: 'A note for you' },
+};
+for (const type of ITEM_TYPES) for (const field of HAMPER_ITEM_REGISTRY[type].fields) {
+  field.recipientLabel = recipientLabels[type]?.[field.key] ?? field.label;
+}
+
+export function hamperFieldLabel(type: ItemType, key: string) {
+  return HAMPER_ITEM_REGISTRY[type].fields.find(field=>field.key===key)?.recipientLabel;
+}
 export function resolveVisualVariant(type: ItemType, requested: string | undefined, instanceIndex: number, theme?: HamperTheme) {
   const variants = HAMPER_ITEM_REGISTRY[type].variants;
   const explicit = variants.find(variant => variant.id === requested);

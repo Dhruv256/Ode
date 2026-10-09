@@ -1,0 +1,164 @@
+[
+  {
+    "width": 1920,
+    "height": 1080,
+    "zoom": 1,
+    "overflow": false,
+    "titleGalleryOverlap": true,
+    "copyGalleryOverlap": false,
+    "errors": []
+  },
+  {
+    "width": 1920,
+    "height": 1080,
+    "zoom": 1.25,
+    "overflow": false,
+    "titleGalleryOverlap": true,
+    "copyGalleryOverlap": true,
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "zoom": 1,
+    "overflow": false,
+    "titleGalleryOverlap": true,
+    "copyGalleryOverlap": true,
+    "errors": []
+  },
+  {
+    "width": 1440,
+    "height": 900,
+    "zoom": 1.25,
+    "overflow": false,
+    "titleGalleryOverlap": true,
+    "copyGalleryOverlap": true,
+    "errors": []
+  },
+  {
+    "width": 1366,
+    "height": 768,
+    "zoom": 1,
+    "overflow": false,
+    "titleGalleryOverlap": true,
+    "copyGalleryOverlap": true,
+    "errors": []
+  },
+  {
+    "width": 1366,
+    "height": 768,
+    "zoom": 1.25,
+    "overflow": false,
+    "titleGalleryOverlap": true,
+    "copyGalleryOverlap": true,
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "zoom": 1,
+    "overflow": false,
+    "titleGalleryOverlap": true,
+    "copyGalleryOverlap": true,
+    "errors": []
+  },
+  {
+    "width": 1280,
+    "height": 720,
+    "zoom": 1.25,
+    "overflow": false,
+    "titleGalleryOverlap": true,
+    "copyGalleryOverlap": true,
+    "errors": []
+  },
+  {
+    "width": 1024,
+    "height": 768,
+    "zoom": 1,
+    "overflow": false,
+    "titleGalleryOverlap": false,
+    "copyGalleryOverlap": true,
+    "errors": []
+  },
+  {
+    "width": 1024,
+    "height": 768,
+    "zoom": 1.25,
+    "overflow": false,
+    "titleGalleryOverlap": false,
+    "copyGalleryOverlap": true,
+    "errors": []
+  },
+  {
+    "width": 768,
+    "height": 1024,
+    "zoom": 1,
+    "overflow": false,
+    "titleGalleryOverlap": false,
+    "copyGalleryOverlap": false,
+    "errors": []
+  },
+  {
+    "width": 768,
+    "height": 1024,
+    "zoom": 1.25,
+    "overflow": false,
+    "titleGalleryOverlap": false,
+    "copyGalleryOverlap": false,
+    "errors": []
+  },
+  {
+    "width": 430,
+    "height": 932,
+    "zoom": 1,
+    "overflow": false,
+    "titleGalleryOverlap": false,
+    "copyGalleryOverlap": false,
+    "errors": []
+  },
+  {
+    "width": 430,
+    "height": 932,
+    "zoom": 1.25,
+    "overflow": false,
+    "titleGalleryOverlap": false,
+    "copyGalleryOverlap": false,
+    "errors": []
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "zoom": 1,
+    "overflow": false,
+    "titleGalleryOverlap": false,
+    "copyGalleryOverlap": false,
+    "errors": []
+  },
+  {
+    "width": 390,
+    "height": 844,
+    "zoom": 1.25,
+    "overflow": false,
+    "titleGalleryOverlap": false,
+    "copyGalleryOverlap": false,
+    "errors": []
+  },
+  {
+    "width": 360,
+    "height": 800,
+    "zoom": 1,
+    "overflow": false,
+    "titleGalleryOverlap": false,
+    "copyGalleryOverlap": false,
+    "errors": []
+  },
+  {
+    "width": 360,
+    "height": 800,
+    "zoom": 1.25,
+    "overflow": false,
+    "titleGalleryOverlap": false,
+    "copyGalleryOverlap": false,
+    "errors": []
+  }
+]

@@ -7,7 +7,7 @@ import { resolveProjectColors } from "@/lib/palettes";
 import { milestoneOf, milestoneTitleFor } from "@/lib/milestones";
 import { memoryAnswerOf } from "@/lib/questions";
 import { TEMPLATE_STYLE } from "./system/fonts";
-import { buildTheme, themeVars } from "./system/theme";
+import { buildTemplateTheme, themeVars } from "./system/theme";
 import { assignRoles } from "./system/roles";
 import type { MemBundle, RenderCtx } from "./system/types";
 
@@ -86,7 +86,7 @@ export function buildCtx(
   performanceTier: PerformanceTier = "medium",
 ): RenderCtx {
   const colors = resolveProjectColors(project.paletteId, project.customPalette) ?? ["#F4F0E7", "#1B1815", "#B4502A", "#6E56CF", "#5A6B4D"];
-  const theme = buildTheme(colors);
+  const theme = buildTemplateTheme(colors, id);
   const style = TEMPLATE_STYLE[id];
   const ordered = [...project.photos].sort((a, b) => a.order - b.order);
   const photos = ["archive","cinema","yearbook"].includes(id) ? chronologicalPhotos(ordered) : ordered;
@@ -142,15 +142,16 @@ export function TemplateView({
   const root = useRef<HTMLDivElement>(null);
   const performanceTier = usePerformanceTier();
   const resolvedDevice = device === "auto" ? (viewportIsMobile ? "mobile" : "desktop") : device;
+  const safeId = Object.hasOwn(REGISTRY, templateId) ? templateId : 'contact-sheet';
   const ctx = useMemo(
-    () => buildCtx(project, templateId, resolvedDevice, edit, onEdit, performanceTier),
-    [project, templateId, resolvedDevice, edit, onEdit, performanceTier]
+    () => buildCtx(project, safeId, resolvedDevice, edit, onEdit, performanceTier),
+    [project, safeId, resolvedDevice, edit, onEdit, performanceTier]
   );
   const Body = REGISTRY[templateId];
   const vars = useMemo(() => themeVars(ctx.theme), [ctx.theme]);
   const direction = vibeDirection(project.vibes.vibes);
 
-  if (!Body) {
+  if (!Object.hasOwn(REGISTRY, templateId) || !Body) {
     return <div className="p-10 font-mono text-sm">This visual system is unavailable.</div>;
   }
 

@@ -11,6 +11,8 @@ const required = {
   hamper_events: ["id", "hamper_id", "link_id", "item_id", "event_type", "session_hash", "dedupe_key", "created_at"],
   hamper_access_attempts: ["key", "attempts", "expires_at"],
   hamper_storage_cleanup: ["path", "created_at", "run_after"],
+  ask_outs: ["id", "user_id", "slug", "recipient_name", "recipient_tag", "creator_name", "opening_message", "theme", "selected_interests", "date", "weekday", "pickup_time", "end_time", "pickup_location", "destination", "map_data", "activity", "additional_details", "configuration", "status", "created_at", "updated_at"],
+  ask_out_responses: ["id", "ask_out_id", "response", "selected_day_option", "selected_activity", "session_hash", "responded_at"],
 };
 
 /** query(text, parameters) returns rows; exec(text) executes migration SQL. */
@@ -67,12 +69,13 @@ export async function repairStudioSchema(db) {
     await db.exec(`create schema ${archive}; revoke all on schema ${archive} from public,anon,authenticated;`);
     for (const table of legacyTables) await db.exec(`alter table public.${table} set schema ${archive}`);
     await db.exec(`revoke all on all tables in schema ${archive} from public,anon,authenticated; revoke all on all sequences in schema ${archive} from public,anon,authenticated;`);
-  } else if (partial && state.missing.some(name => !name.startsWith("birthday_projects.") && name !== "hamper_items.object_limits")) {
+  } else if (partial && state.missing.some(name => !name.startsWith("birthday_projects.") && !name.startsWith("ask_out") && name !== "hamper_items.object_limits")) {
     throw new Error("Unrecognized partial hamper schema. No changes were made.");
   }
   await migration(db, "003_studio_ownership.sql");
   if (state.legacy || !partial) await migration(db, "004_digital_hampers.sql");
   await migration(db, "007_hamper_20_per_type_120_total.sql");
+  if (state.missing.some(name => name.startsWith("ask_out"))) await migration(db, "008_ask_outs.sql");
   const after = await inspectStudioSchema(db);
   if (!after.ready) throw new Error(`Repair verification failed: ${after.missing.join(", ")}`);
   const afterWebsites = (await db.query(websiteFingerprint))[0];

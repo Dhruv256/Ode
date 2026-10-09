@@ -51,6 +51,7 @@ export function vibeDirection(vibes: readonly VibeId[]) {
     minimal: vibes.includes("minimal-cool"), playful: vibes.includes("chaos-energy") || vibes.includes("sunshine-human") };
 }
 const MotionContext = createContext({ id: "contact-sheet" as TemplateId, vibes: [] as VibeId[] });
+export function useTemplateMotion() { return useContext(MotionContext); }
 export function TemplateMotion({ id, vibes, children }: { id: TemplateId; vibes: VibeId[]; children: ReactNode }) {
   return <MotionContext.Provider value={{id,vibes}}><MotionConfig reducedMotion="user" transition={{duration:MOTION.content,ease:MOTION.expressive}}>{children}</MotionConfig></MotionContext.Provider>;
 }

@@ -9,10 +9,10 @@ export function record(value: unknown): Record<string, unknown> {
 export function string(value: unknown, max: number, required = false): string {
   if (value === undefined && !required) return "";
   if (typeof value !== "string" || value.length > max || (required && !value.trim())) throw new ValidationError(`Please use ${required ? "1–" : "up to "}${max} characters.`);
-  return value.trim();
+  return value;
 }
 export function safeUrl(value: unknown) {
-  const raw = string(value, 2048, true);
+  const raw = string(value, 2048, true).trim();
   let url: URL;
   try { url = new URL(raw); } catch { throw new ValidationError("Please enter a complete HTTPS link."); }
   const h = url.hostname.toLowerCase().replace(/\.$/, "");
@@ -44,7 +44,7 @@ export function musicEmbed(value: string): string | undefined {
   try { return videoEmbed(value); } catch { return undefined; }
 }
 export function validateSlug(value: unknown) {
-  const slug = string(value, 48, true);
+  const slug = string(value, 48, true).trim();
   if (slug.length < 3 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || RESERVED_SLUGS.has(slug)) throw new ValidationError("Choose 3–48 lowercase letters, numbers or hyphens, outside reserved names.");
   return slug;
 }

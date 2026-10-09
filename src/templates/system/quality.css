@@ -1,6 +1,6 @@
 .birthday-template { isolation:isolate; --tp-accent-type:var(--tp-mono); }
 .birthday-template :is(h1,h2,h3,p,blockquote,dd,figcaption) { overflow-wrap:anywhere; }
-.birthday-template :is(h1,h2) { line-height:1; }
+.birthday-template :is(p,blockquote,dd) { white-space:pre-wrap; }
 .birthday-template :is(p,blockquote,dd)[data-long-copy] { font-size:clamp(1.2rem,2.5vw,2rem);line-height:1.55;max-width:58ch;white-space:pre-line; }
 .birthday-template h2[data-long-copy] {font-size:clamp(1.8rem,4vw,3.8rem);line-height:1.15;max-width:32ch;}
 .birthday-template :focus-visible {outline:3px solid currentColor;outline-offset:4px;}
@@ -9,7 +9,7 @@
 .birthday-template .tp-photo-normal[data-frame-ratio="portrait"] {max-width:34rem;margin-inline:auto;}
 .tp-carousel-viewport {overflow:hidden;padding:.7rem;}
 .tp-carousel-track {align-items:start;}
-.tp-carousel-track .tp-frame {aspect-ratio:var(--tp-repeat-ratio)!important;margin:0;}
+.tp-carousel-track .tp-frame {margin:0;}
 .tp-carousel-track > div {margin:0;}
 .tp-carousel-track figcaption {min-height:2.8em;font-size:12px;line-height:1.4;}
 .tp-carousel-track .tp-cap {min-height:0;font-size:11px;}
@@ -32,7 +32,7 @@
 .tp-custom-vibe {max-width:48ch;font-size:clamp(1.2rem,2vw,1.7rem);line-height:1.4;margin-top:1.4rem;}
 .tp-notes-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.5rem 2rem;margin-top:2rem;}
 .tp-notes-grid>div {border-top:1px solid var(--tp-line);padding-top:1rem;}
-.tp-notes-grid dd {margin-top:.65rem;font:400 clamp(1.1rem,2vw,1.6rem)/1.4 var(--tp-display);white-space:pre-line;}
+.tp-notes-grid dd {margin-top:.65rem;font:400 clamp(1.1rem,2vw,1.6rem)/1.4 var(--tp-display);white-space:pre-wrap;overflow-wrap:anywhere;}
 .tp-interest-chapter h2,.tp-custom-memories h2,.tp-high-photo h2 {font-size:clamp(2rem,4.5vw,4rem);line-height:1.08;}
 .tp-interest-index {display:none;}
 .tp-interest-cards {grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;border:0;background:transparent;margin-top:2rem;}
@@ -59,6 +59,9 @@
 .birthday-template[data-template="contact-sheet"] .tp-personalization,
 .birthday-template[data-template="cinema"] .tp-personalization,
 .birthday-template[data-template="after-dark"] .tp-personalization {background:var(--tp-bg);color:var(--tp-text);--tp-panel:color-mix(in srgb,var(--tp-bg) 94%,var(--tp-text));--tp-line:color-mix(in srgb,var(--tp-text) 30%,var(--tp-bg));}
+
+/* Long first names need room without changing a template's ordinary display face. */
+.birthday-template h1[data-long-name] {font-size:clamp(2.3rem,7vw,5rem);line-height:1;}
 
 /* Composition, materials and collection density follow the original twelve voices. */
 [data-template="contact-sheet"] .tp-notes-grid {grid-template-columns:repeat(4,minmax(0,1fr));font-family:var(--tp-mono);}
@@ -121,7 +124,7 @@
   [data-vibes~="chaos-energy"] .tp-carousel-control:hover,[data-vibes~="sunshine-human"] .tp-carousel-control:hover {transform:translateY(-2px);}
 }
 @media(max-width:639px){
-  .birthday-template h1 {font-size:clamp(3rem,13vw,5.5rem);line-height:1.02;}
+  .birthday-template h1 {max-width:100%;}
   .tp-notes-grid,[data-template] .tp-notes-grid {grid-template-columns:1fr;}
   [data-template="cover-star"] .tp-personal-notes {display:block;}
   [data-template="archive"] .tp-notes-grid>div {display:block;}
@@ -134,3 +137,51 @@
 }
 @media(max-width:360px){.tp-high-photo-grid,[data-template] .tp-high-photo-grid{grid-template-columns:repeat(2,minmax(0,1fr));}.tp-interest-cards,[data-template="cover-star"] .tp-interest-cards{grid-template-columns:1fr;}}
 @media(prefers-reduced-motion:reduce){.birthday-template [data-motion-scene]{transform:none!important;clip-path:none!important;opacity:1!important;}.birthday-template .tp-editorial-fold{transform:none!important;}.birthday-template .tp-portal::after{display:none;}}
+
+/* User messages keep their original spacing while each voice owns its entrance. */
+.tp-message {display:block;white-space:pre-wrap;overflow-wrap:anywhere;}
+.tp-message-unit {opacity:0;transition:opacity .65s ease,filter .65s ease;}
+.tp-message[data-message-started="true"][data-message-mode] .tp-message-unit {opacity:1;filter:none;}
+.tp-message[data-message-mode="develop"] .tp-message-unit {filter:blur(3px);}
+.tp-message[data-message-mode="cinematic"] .tp-message-unit {transition-duration:1.1s;}
+.tp-message[data-message-mode="terminal"] .tp-message-unit {transition-duration:.025s;}
+.tp-message[data-message-mode="flash"] .tp-message-unit {transition-duration:.22s;}
+.tp-message[data-message-mode="drift"] .tp-message-unit {filter:blur(5px);transition-duration:1s;}
+.tp-message[data-message-mode="paper"] .tp-message-unit,
+.tp-message[data-message-mode="pin"] .tp-message-unit {transition-timing-function:steps(2,end);}
+.tp-message[data-message-mode="poster"] .tp-message-unit {transition-timing-function:steps(1,end);}
+.birthday-template .tp-photo-cinematic {max-width:min(100%,44rem);margin-inline:auto;}
+.birthday-template .tp-photo-cinematic[data-source-orientation="portrait"] {max-width:min(100%,28rem);}
+.birthday-template .tp-photo-normal[data-source-orientation="portrait"] {max-width:min(100%,30rem);margin-inline:auto;}
+.tp-interest-list {display:flex;flex-wrap:wrap;gap:.75rem 1.5rem;margin-top:1.5rem;list-style:none;padding:0;}
+.tp-interest-list li {display:flex;align-items:baseline;gap:.6rem;border-bottom:1px solid var(--tp-line);padding:.5rem 0;font:500 1rem/1.5 var(--tp-mono);}
+.tp-interest-list b {color:var(--tp-accent-ink);font-size:.75rem;}
+.tp-interest-chapter .tp-interest-heading h2 {font-size:clamp(1.6rem,3vw,2.6rem);}
+[data-template="cut-and-paste"] .tp-interest-list li,[data-template="polaroid-wall"] .tp-interest-list li {font-family:'Caveat',cursive;font-size:1.5rem;transform:rotate(-1deg);}
+[data-template="cinema"] .tp-interest-list {justify-content:center;}
+[data-template="cinema"] .tp-interest-heading {text-align:center;}
+[data-template="archive"] .tp-interest-list {display:grid;grid-template-columns:repeat(auto-fit,minmax(12rem,1fr));}
+[data-template="dreamscape"] .tp-interest-list li {border-radius:2rem;padding:.5rem 1rem;border:1px solid var(--tp-line);}
+[data-template="poster-city"] .tp-interest-list li {border:2px solid currentColor;padding:.6rem 1rem;text-transform:uppercase;}
+[data-template="internet-person"] .tp-interest-list li {border:1px solid currentColor;padding:.5rem;box-shadow:3px 3px 0 var(--tp-line);}
+.birthday-template [data-message-mode="letter"],.birthday-template [data-message-mode="catalogue"] {line-height:1.6;}
+@media(prefers-reduced-motion:reduce){.tp-message-unit{opacity:1!important;filter:none!important;transition:none!important;}.birthday-template .transition-transform,.birthday-template .transition-\[grid-template-rows\]{transition-duration:0s;}}
+
+/* Small annotations inherit the native composition; answers keep its expressive type. */
+.tp-personal-answer,.tp-answer {display:block;min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;}
+.tp-answer {line-height:1.2;}
+.birthday-template :is(p,blockquote,h2):has(>.tp-personal-answer) {opacity:1;}
+.tp-question {display:block;margin-bottom:1rem;font:500 11px/1.55 var(--tp-mono);letter-spacing:.1em;text-transform:none;font-style:normal;white-space:normal;opacity:.75;}
+.tp-personal-answer>.tp-answer {opacity:0;}
+.tp-personal-answer[data-context-entered="true"]>.tp-answer {animation:tp-answer-arrive .5s .4s both;}
+[data-template="cinema"] .tp-question,[data-template="contact-sheet"] .tp-question {letter-spacing:.18em;text-transform:uppercase;}
+[data-template="cover-star"] .tp-question {font-family:var(--tp-display);font-size:15px;letter-spacing:.02em;}
+[data-template="dreamscape"] .tp-question {font-family:var(--tp-display);font-size:16px;font-style:italic;letter-spacing:.02em;}
+[data-template="cut-and-paste"] .tp-question,[data-template="polaroid-wall"] .tp-question,[data-template="yearbook"] .tp-question {font-family:'Caveat',cursive;font-size:20px;letter-spacing:0;}
+[data-template="internet-person"] .tp-question::before {content:'> ';}
+[data-template="archive"] .tp-question {border-bottom:1px solid var(--tp-line);padding-bottom:.5rem;}
+[data-template="poster-city"] .tp-question {font-weight:700;text-transform:uppercase;}
+[data-template="sunday-morning"] .tp-question {font-family:var(--tp-display);font-size:14px;letter-spacing:0;}
+.tp-custom-vibe small,.tp-custom-vibe span {display:block;}
+@keyframes tp-answer-arrive {from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.tp-personal-answer>.tp-answer {animation:none;opacity:1;}}

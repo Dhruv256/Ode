@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { EventType, HamperContent, HamperItem } from "../types";
-import { HAMPER_ITEM_REGISTRY, HAMPER_THEMES } from "../config";
+import { HAMPER_ITEM_REGISTRY, HAMPER_THEMES, HAMPER_MESSAGE_FIELD } from "../config";
 import { ItemObject } from "../components/ItemObject";
 import { ItemView, itemSummary, type ResolveAsset } from "./ItemView";
 import { nextOpeningStage, type OpeningStage } from "./opening";
@@ -40,7 +40,7 @@ export function Recipient({ content, resolveAsset, onEvent }: { content: HamperC
         <p className={styles.tapHint} aria-live="polite">{["tap to open", "a little more…", "one more time", "made just for you"][openingStage]}</p>
         <span className={styles.eyebrow}>{Math.min(openingStage, 3)} / 3 little taps</span>
       </motion.div> : <motion.div key="world" className={styles.opened} initial={{ opacity: 0, scale: reduced ? 1 : content.openingStyle === "scene" ? 1.06 : 1 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: reduced ? .1 : .6 }}>
-        <div className={styles.openingNote}><h1 ref={heading} tabIndex={-1}>A few good things,<br />just for {content.recipient}.</h1>{content.message && <p>{content.message}</p>}<span className={styles.eyebrow}>From {content.sender} · tap a keepsake</span></div>
+        <div className={styles.openingNote}><h1 ref={heading} tabIndex={-1}>A few good things,<br />just for {content.recipient}.</h1>{content.message?.trim() && <p className={styles.personalAnswer} data-hamper-field={HAMPER_MESSAGE_FIELD.key}><small>{HAMPER_MESSAGE_FIELD.recipientLabel}</small><span>{content.message}</span></p>}<span className={styles.eyebrow}>From {content.sender} · tap a keepsake</span></div>
         <div className={content.openingStyle === "scene" ? styles.scene : undefined} data-theme={content.theme}>
           {content.openingStyle === "scene" && <p className={styles.sceneLabel}>{theme.scene} / a place for your little things</p>}
           <div className={styles.composition}>

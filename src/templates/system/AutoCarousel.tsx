@@ -4,7 +4,11 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { CAROUSEL_AUTOPLAY_MS } from "@/lib/birthdayCapabilities";
-import { MOTION } from "./motion";
+import { MOTION, useTemplateMotion } from "./motion";
+import { TEMPLATE_FRAMES } from './frames';
+import { PhotoFrameContext } from './PhotoFrameContext';
+import type { PersonalAnswer } from '@/lib/personalization';
+import { PersonalizedAnswer } from './PersonalizedAnswer';
 
 export type CarouselKind = "film" | "editorial" | "fade" | "vertical" | "stack" | "window" | "orbit" | "poster" | "spread";
 
@@ -35,6 +39,7 @@ export function AutoCarousel<T>({
   label = "Memory carousel",
   showControls = true,
   sizer,
+  reading = false,
 }: {
   items: readonly T[];
   renderItem: (item: T, index: number, slot: number) => React.ReactNode;
@@ -50,8 +55,10 @@ export function AutoCarousel<T>({
   label?: string;
   showControls?: boolean;
   sizer?: React.ReactNode;
+  reading?: boolean;
 }) {
   const reduced = useReducedMotion();
+  const {id:templateId} = useTemplateMotion();
   const [active, setActive] = useState(0);
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -65,9 +72,8 @@ export function AutoCarousel<T>({
   const resumeTimer = useRef<number>();
   const count = items.length;
   const shown = Math.min(visible, Math.max(1, count));
-  // One product-wide rhythm: callers may keep legacy hints, but published
-  // birthday carousels advance at the promised 2.5 second cadence.
-  const effectiveAutoMs = CAROUSEL_AUTOPLAY_MS;
+  // Photo rhythm stays fixed; question/answer slides need time to be read.
+  const effectiveAutoMs = reading ? autoMs : CAROUSEL_AUTOPLAY_MS;
 
   const next = useCallback(() => setActive((value) => count ? (value + 1) % count : 0), [count]);
   const previous = useCallback(() => setActive((value) => count ? (value - 1 + count) % count : 0), [count]);
@@ -136,7 +142,7 @@ export function AutoCarousel<T>({
       style={sizer ? {display:"grid"} : undefined}
     >
       {sizer && <div aria-hidden="true" className="invisible pointer-events-none" style={{gridArea:"1 / 1"}}>{sizer}</div>}
-      <div style={sizer ? {gridArea:"1 / 1",alignSelf:"center"} : undefined} className={cn("tp-carousel-track grid gap-[var(--image-gap)]", shown === 2 && "grid-cols-2", shown === 3 && "grid-cols-3", kind === "vertical" && "grid-cols-1")}>
+      <PhotoFrameContext.Provider value={TEMPLATE_FRAMES[templateId].repeated}><div style={sizer ? {gridArea:"1 / 1",alignSelf:"center"} : undefined} className={cn("tp-carousel-track grid gap-[var(--image-gap)]", shown === 2 && "grid-cols-2", shown === 3 && "grid-cols-3", kind === "vertical" && "grid-cols-1")}>
         {slots.map(({ item, index, slot }) => <motion.div
           key={`${getKey(item, index)}-${active}-${slot}`}
           initial={reduced ? false : initialByKind[kind]}
@@ -145,9 +151,9 @@ export function AutoCarousel<T>({
           className={cn("min-w-0", itemClassName)}
           aria-hidden={slot > 0 ? undefined : false}
         >{renderItem(item, index, slot)}</motion.div>)}
-      </div>
+      </div></PhotoFrameContext.Provider>
     </div>
-    {showControls && count > 1 ? <div className={cn("mt-4 flex items-center justify-between gap-4", controlsClassName)}>
+    {showControls && count > 1 ? <div role="group" aria-label={`${label} controls`} className={cn("mt-4 flex items-center justify-between gap-4", controlsClassName)}>
       <button type="button" onClick={() => { previous(); pauseTemporarily(); }} aria-label="Previous item" className="tp-carousel-control">←</button>
       <span className="font-mono text-[10px] uppercase tracking-widest2" aria-live={manual ? "polite" : "off"}>{String(active % count + 1).padStart(2, "0")} / {String(count).padStart(2, "0")}</span>
       {!reduced && <button type="button" className="tp-carousel-play" onClick={()=>setManual(value=>!value)} aria-label={manual ? "Play slideshow" : "Pause slideshow"}>{manual ? "Play" : "Pause"}</button>}
@@ -156,8 +162,10 @@ export function AutoCarousel<T>({
   </section>;
 }
 
-export function TextCarousel({ items, kind = "vertical", className, autoMs = CAROUSEL_AUTOPLAY_MS, label = "Rotating words" }: { items: readonly string[]; kind?: CarouselKind; className?: string; autoMs?: number; label?: string }) {
-  const words=items.filter(Boolean);
+export function TextCarousel({ items, kind = "vertical", className, autoMs = CAROUSEL_AUTOPLAY_MS, label = "Rotating words" }: { items: readonly PersonalAnswer[]; kind?: CarouselKind; className?: string; autoMs?: number; label?: string }) {
+  const words=items.filter(item=>item.answer.trim() && item.question);
   if(!words.length)return null;
-  return <div data-creator-values={JSON.stringify(words)}><AutoCarousel items={words} getKey={(item,index) => `${index}-${item}`} renderItem={(item) => <p>{item}</p>} kind={kind} visible={1} autoMs={autoMs} className={cn("tp-text-carousel",className)} label={label} sizer={<div className="grid">{words.map((item,index)=><p key={index} style={{gridArea:"1 / 1"}}>{item}</p>)}</div>} /></div>;
+  // Reserve enough time for the longest pair; controls/hover/focus let readers linger.
+  const readingMs=Math.max(5000,autoMs,...words.map(item=>1200+item.answer.split(/\s+/).length*350));
+  return <div data-creator-values={JSON.stringify(words.map(item=>item.answer))}><AutoCarousel items={words} getKey={item=>item.key} renderItem={item=><p data-long-copy={item.answer.length>160||undefined}><PersonalizedAnswer field={item.key}>{item.answer}</PersonalizedAnswer></p>} kind={kind} visible={1} autoMs={readingMs} reading className={cn("tp-text-carousel",className)} label={label} sizer={<div className="grid">{words.map(item=><p key={item.key} data-long-copy={item.answer.length>160||undefined} style={{gridArea:"1 / 1"}}><span className="tp-question">{item.question}</span><span className="tp-answer">{item.answer}</span></p>)}</div>} /></div>;
 }

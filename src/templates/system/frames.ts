@@ -17,3 +17,12 @@ export const TEMPLATE_FRAMES: Record<TemplateId, { hero: FrameRatio; repeated: F
   yearbook: {hero:"portrait",repeated:"portrait",collection:"postcard"},
 };
 export function normalizedFocal(value: number | undefined) { return Number.isFinite(value) ? Math.max(0,Math.min(1,value!)) : .5; }
+
+/** Keep square instant prints and cinema mattes; let other frames follow the source. */
+export function photoFrameRatio(ratio: FrameRatio | undefined, orientation: string, legacy?: string) {
+  if (legacy) return legacy;
+  if (ratio === 'square' || ratio === 'cinematic') return FRAME_RATIOS[ratio];
+  if (orientation === 'landscape') return FRAME_RATIOS.landscape;
+  if (orientation === 'square') return FRAME_RATIOS.square;
+  return FRAME_RATIOS.portrait;
+}

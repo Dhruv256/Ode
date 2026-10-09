@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { StudioShell } from "@/components/dashboard/StudioShell";
 import type { Hamper, HamperContent, HamperItem, HamperTheme, ItemType } from "../types";
 import { api, shareLink } from "../client";
-import { HAMPER_ITEM_REGISTRY, HAMPER_LIMITS, HAMPER_THEMES, ITEM_TYPES } from "../config";
+import { HAMPER_MESSAGE_FIELD, HAMPER_ITEM_REGISTRY, HAMPER_LIMITS, HAMPER_THEMES, ITEM_TYPES } from "../config";
 import { validateContent, validateSlug, suggestSlug } from "../validation";
 import { ItemIcon } from "../components/ItemIcon";
 import { ItemObject } from "../components/ItemObject";
@@ -67,7 +67,7 @@ export function HamperBuilder({ initial, initialStep = 0 }: { initial: Hamper; i
     {step === 0 && <div className={styles.form}>
       <label className={styles.field}>Recipient name *<input maxLength={80} required value={content.recipient} onChange={e => { const recipient = e.target.value; patch({ recipient }); if (automaticSlug) setSlug(suggestSlug(recipient, slugSuffix)); }} /></label>
       <label className={styles.field}>Sender name *<input maxLength={80} required value={content.sender} onChange={e => patch({ sender: e.target.value })} /></label>
-      <label className={styles.field}>Opening message<textarea maxLength={500} value={content.message} onChange={e => patch({ message: e.target.value })} /><small>Revealed after the package opens.</small></label>
+      <label className={styles.field}>{HAMPER_MESSAGE_FIELD.label}<textarea maxLength={500} value={content.message} onChange={e => patch({ message: e.target.value })} /><small>Revealed after the package opens.</small></label>
       <label className={styles.field}>Your hamper link<input maxLength={48} value={slug} disabled={hamper.status === "published"} onChange={e => { setSlug(e.target.value); setAutomaticSlug(false); setDirty(true); }} /><small>/hamper/{slug} {hamper.status === "published" && "· Change this under Manage links."}</small></label>
     </div>}
     {step === 1 && <div className={styles.themeGrid}>{(Object.entries(HAMPER_THEMES) as [HamperTheme, typeof HAMPER_THEMES[HamperTheme]][]).map(([id, t]) => <button type="button" key={id} className={styles.themeChoice} style={{ background: t.paper }} aria-pressed={content.theme === id} onClick={() => patch({ theme: id })}><span className={styles.themeSwatches} aria-hidden="true"><i style={{ background: t.box }} /><i style={{ background: t.soft }} /><i style={{ background: t.accent }} /></span><strong>{t.name}</strong><small>{t.description}</small></button>)}</div>}

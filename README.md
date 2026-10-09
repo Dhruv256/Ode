@@ -63,8 +63,9 @@ rows and links. Cloud writes require a signed-in creator; the old write token
 can recover an unclaimed legacy website into that account. Apply migration 004
 for Digital Hampers and its private media bucket. Existing installations must
 also apply migration 005 to enable the Proper Retro hamper theme, migration
-006, and migration 007 to install the current 20-per-type / 120-total object limits. See
-[DIGITAL_HAMPERS.md](DIGITAL_HAMPERS.md).
+006, and migration 007 to install the current 20-per-type / 120-total object limits.
+Migration 008 adds the independent Ask Out product and its consent-response table.
+See [DIGITAL_HAMPERS.md](DIGITAL_HAMPERS.md) and [ASK_OUTS.md](ASK_OUTS.md).
 
 ## Product flow
 

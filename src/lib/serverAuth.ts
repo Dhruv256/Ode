@@ -20,18 +20,36 @@ export async function localDraftOwner() {
 }
 
 export function requestError(error: unknown) {
+  if (error instanceof Error && error.name === "AskOutValidationError") return Response.json({ error: error.message }, { status: 400 });
   if (error instanceof Error && error.name === "ValidationError") return Response.json({ error: error.message }, { status: 422 });
   if (error instanceof RequestError) return Response.json({ error: error.message }, { status: error.status });
-  const code = (error as { code?: string }).code;
+  const diagnostic = (error && (typeof error === "object" || typeof error === "function") ? error : {}) as {
+    name?: string; message?: string; code?: string; detail?: string; details?: string; hint?: string; schema_name?: string;
+    table_name?: string; column_name?: string; constraint_name?: string; stack?: string; cause?: unknown;
+  };
+  const code = diagnostic.code;
   if (code === "23505") return Response.json({ error: "That link is already taken. Try another name." }, { status: 409 });
-  const constraint = (error as { constraint_name?: string }).constraint_name;
+  const constraint = diagnostic.constraint_name;
   if (code === "23514" && constraint === "hamper_items_type_cap") return Response.json({ error: `This hamper can hold up to ${HAMPER_LIMITS.maxItemsPerType} items in each category.` }, { status: 422 });
   if (code === "23514" && (constraint === "hamper_items_total_cap" || constraint === "hamper_items_position_check")) return Response.json({ error: `This hamper can hold up to ${HAMPER_LIMITS.maxItemsPerHamper} items.` }, { status: 422 });
   if (code === "23514") return Response.json({ error: "This would exceed the hamper's limits. Remove an item or choose a smaller file." }, { status: 422 });
-  const diagnostic = error as { table_name?: string; column_name?: string; constraint_name?: string };
-  // PostgreSQL's detail/message can contain private row values. Only log
-  // schema identifiers, so a missing migration is diagnosable without leaks.
-  console.error("Studio request failed", { code: code ?? "unknown", table: diagnostic?.table_name, column: diagnostic?.column_name, constraint: diagnostic?.constraint_name });
+  const redact = (value: unknown) => typeof value === "string"
+    ? value.replace(/postgres(?:ql)?:\/\/[^\s]+/gi, "postgresql://[redacted]").slice(0, 4000)
+    : undefined;
+  const development = process.env.NODE_ENV !== "production";
+  console.error("Studio request failed", {
+    name: diagnostic.name ?? (error instanceof Error ? error.name : typeof error),
+    message: development ? redact(diagnostic.message ?? (error instanceof Error ? error.message : String(error))) : undefined,
+    code: code ?? "unknown",
+    detail: development ? redact(diagnostic.detail ?? diagnostic.details) : undefined,
+    hint: development ? redact(diagnostic.hint) : undefined,
+    schema: diagnostic.schema_name,
+    table: diagnostic.table_name,
+    column: diagnostic.column_name,
+    constraint: diagnostic.constraint_name,
+    cause: development && diagnostic.cause instanceof Error ? redact(diagnostic.cause.message) : undefined,
+    stack: development ? redact(diagnostic.stack ?? (error instanceof Error ? error.stack : undefined)) : undefined,
+  });
   return Response.json({ error: "Your changes could not be saved. Please try again." }, { status: 500 });
 }
 

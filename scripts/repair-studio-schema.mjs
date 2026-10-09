@@ -30,10 +30,12 @@ try {
         await tx`insert into hamper_access_attempts(key,attempts,expires_at) values(${owner},1,now()+interval '15 minutes') on conflict(key) do update set attempts=hamper_access_attempts.attempts+1`;
         await tx`insert into hamper_assets(hamper_id,owner_id,item_id,path,kind,mime,asset_bytes) values(${hamper.id},${owner},${randomUUID()},${owner},'photo','image/webp',1024)`;
         await tx`update hamper_share_links set revoked_at=now(),is_primary=false where id=${link.id}`;
+        const [askOut] = await tx`insert into ask_outs(user_id,slug,recipient_name,creator_name,status,date,pickup_time,destination,map_data,activity) values(${owner},${`ask-${randomUUID().slice(0,8)}`},'Schema check','Ode','published','2027-01-03','19:00','Test destination','{"address":"Test address"}','Coffee') returning id`;
+        await tx`insert into ask_out_responses(ask_out_id,response,session_hash) values(${askOut.id},'accepted',${owner})`;
         throw rollback;
       });
     } catch (error) { if (error !== rollback) throw error; }
-    console.log("PASS: website listing, draft creation, share links, items, save, events, rate limits and asset reservations. All verification records were rolled back.");
+    console.log("PASS: websites, hampers, Ask Outs, responses, events, rate limits and asset reservations. All verification records were rolled back.");
   }
 } catch (error) {
   // Never log connection strings, SQL parameters, or failing-row contents.

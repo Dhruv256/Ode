@@ -5,6 +5,7 @@ import { StepEyebrow, StepHeading, ActionButton, Chip, SkipButton } from "@/comp
 import type { StepNav } from "@/components/creator/CreatorApp";
 import { useProject } from "@/state/projectStore";
 import { MEMORY_QUESTIONS } from "@/lib/questions";
+import { resolveMemoryKey } from '@/lib/questionIds';
 import { chipLabels } from "@/lib/interests";
 import type { MemoryKey } from "@/lib/types";
 import { uid } from "@/lib/utils";
@@ -26,7 +27,7 @@ export default function WordsStep({ nav }: { nav: StepNav }) {
   const customMemories = Array.isArray(project.customMemories) ? project.customMemories : [];
 
   const answerFor = (key: MemoryKey) =>
-    memories.find((m) => m.key === key);
+    memories.find((m) => (resolveMemoryKey(m.key) ?? resolveMemoryKey(m.id)) === key);
 
   return (
     <section className="max-w-3xl">

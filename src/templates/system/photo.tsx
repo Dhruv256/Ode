@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import Image from "next/image";
 import type { PhotoAsset } from "@/lib/types";
 import type { Treatment } from "./types";
 import { cn } from "@/lib/utils";
-import { normalizedFocal, FRAME_RATIOS, type FrameRatio } from "./frames";
+import { FRAME_RATIOS, normalizedFocal, photoFrameRatio, type FrameRatio } from "./frames";
+import { PhotoFrameContext } from './PhotoFrameContext';
 
 /**
  * Shared image primitive for all generated experiences.
@@ -70,10 +71,12 @@ export function Photo({
   const t = treatment ?? "none";
   const filter = imageFilter(t);
   const isVideo = photo.kind === "video" || photo.mimeType?.startsWith("video/");
+  const carouselRatio = useContext(PhotoFrameContext);
   const [failed, setFailed] = useState(false);
   useEffect(()=>setFailed(false),[photo.previewUrl]);
   const legacyRatio=aspect?.includes("aspect-square")?"1 / 1":aspect?.match(/aspect-\[(\d+)\/(\d+)\]/)?.slice(1).join(" / ");
-  const frameStyle = { ...style, aspectRatio:ratio?FRAME_RATIOS[ratio]:legacyRatio??"4 / 5" };
+  const frameRatio = carouselRatio ? FRAME_RATIOS[carouselRatio] : photoFrameRatio(ratio, photo.orientation, legacyRatio);
+  const frameStyle = { ...style, aspectRatio: frameRatio };
 
   if (photo.needsRelink || failed) {
     return (
@@ -87,7 +90,11 @@ export function Photo({
     );
   }
 
-  const resolvedFit = fit ?? (photo.fit === "fit" || photo.fit === "original" || photo.analysis?.isGroupPhoto ? "contain" : "cover");
+  const [frameWidth, frameHeight] = frameRatio.split('/').map(Number);
+  const sourceRatio = photo.width / photo.height;
+  const cropRatio = sourceRatio / (frameWidth / frameHeight);
+  const excessiveCrop = cropRatio > 1.45 || cropRatio < 1 / 1.45;
+  const resolvedFit = fit ?? (photo.fit === "fit" || photo.fit === "original" || photo.analysis?.isGroupPhoto || (excessiveCrop && photo.fit !== "manual") ? "contain" : "cover");
   const footprintClass = footprint === "compact" ? "tp-photo-compact" : footprint === "cinematic" ? "tp-photo-cinematic" : footprint === "unbounded" ? "" : "tp-photo-normal";
 
   return (
@@ -96,6 +103,8 @@ export function Photo({
       className={cn("tp-frame", footprintClass, aspect, className)}
       style={frameStyle}
       data-frame-ratio={ratio}
+      data-source-orientation={photo.orientation}
+      data-render-fit={resolvedFit}
     >
       {isVideo ? (
         <video

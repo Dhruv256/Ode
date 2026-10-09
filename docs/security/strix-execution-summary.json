@@ -1,0 +1,28 @@
+{
+  "recordedAtUtc": "2026-10-09T13:33:54.5971209Z",
+  "scope": "Sanitized local source only; no production attacks or customer data",
+  "complete": false,
+  "runs": [
+    {
+      "run": "ode-strix-source-20261009_08e4",
+      "cliRecordedStatus": "running",
+      "observedOutcome": "interrupted after provider DNS/connection failures; incomplete",
+      "requests": 28,
+      "inputTokens": 1884360,
+      "outputTokens": 13907,
+      "estimatedCostUsd": 0.118931218,
+      "finalizedReportAvailable": false
+    },
+    {
+      "run": "ode-strix-focused-20261009_ec13",
+      "cliRecordedStatus": "running",
+      "observedOutcome": "interrupted after provider DNS/connection failures; incomplete",
+      "requests": 15,
+      "inputTokens": 885230,
+      "outputTokens": 2342,
+      "estimatedCostUsd": 0.041584182,
+      "finalizedReportAvailable": false
+    }
+  ],
+  "interpretation": "No validated Strix findings were delivered before interruption. This does not establish absence of vulnerabilities."
+}

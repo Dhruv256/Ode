@@ -23,7 +23,7 @@ async function uploadBrowserMedia(input: {
   const signatureResponse = await fetch("/api/media/sign", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ projectId: input.projectId, assetId: input.assetId, fileName: input.fileName, contentType, kind: input.kind }),
+    body: JSON.stringify({ projectId: input.projectId, assetId: input.assetId, fileName: input.fileName, contentType, kind: input.kind, size:blob.size }),
   });
   const signature = await signatureResponse.json() as UploadSignature;
   if (!signatureResponse.ok || !signature.uploadUrl) throw new Error(signature.error || "Could not prepare the media upload.");

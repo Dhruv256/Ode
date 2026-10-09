@@ -1,16 +1,8 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { CREATOR_ROUTE_PATTERNS } from "@/lib/creatorRoutes";
 
-const isCreatorRoute = createRouteMatcher([
-  "/dashboard(.*)",
-  "/create(.*)",
-  "/project(.*)",
-  "/settings(.*)",
-  "/api/media/sign(.*)",
-  "/api/projects(.*)",
-  "/api/websites(.*)",
-  "/api/hampers(.*)",
-]);
+const isCreatorRoute = createRouteMatcher([...CREATOR_ROUTE_PATTERNS]);
 
 const clerkPublishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 const clerkIsConfigured =
@@ -36,11 +28,12 @@ export default clerkIsConfigured
   : () => NextResponse.next();
 
 export const config = {
+  // Public recipient pages (/askout/[slug] and /api/askout/[slug]) stay out.
+  // Next statically analyzes this field, so these entries must remain literals.
   matcher: [
-    // Public recipient pages must never enter Clerk's development handshake.
-    "/", "/dashboard/:path*", "/create/:path*", "/settings/:path*", "/project/:path*",
+    "/dashboard/:path*", "/create/:path*", "/settings/:path*", "/project/:path*", "/askout/create/:path*",
     "/sign-in/:path*", "/sign-up/:path*",
-    "/api/media/sign/:path*", "/api/projects/:path*", "/api/websites/:path*", "/api/hampers/:path*",
+    "/api/media/sign/:path*", "/api/projects/:path*", "/api/websites/:path*", "/api/hampers/:path*", "/api/askouts/:path*",
     "/__clerk/:path*",
   ],
 };

@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-10-09 13:27:40 UTC",
+  "run_id": "ode-strix-focused-20261009_ec13",
+  "run_name": "ode-strix-focused-20261009_ec13",
+  "scope": {
+    "targets": [
+      {
+        "type": "local_code",
+        "details": {
+          "target_path": "C:\\Users\\dhruv\\AppData\\Local\\Temp\\ode-strix-focused-20261009",
+          "workspace_subdir": "ode-strix-focused-20261009"
+        },
+        "original": "C:\\Users\\dhruv\\AppData\\Local\\Temp\\ode-strix-focused-20261009"
+      }
+    ],
+    "scan_mode": "quick",
+    "scope_mode": "auto",
+    "diff_scope": {
+      "active": false,
+      "mode": "auto"
+    },
+    "instruction": "Authorized narrow local source assessment only: review the provided seven files for upload signing and ownership validation. Do not contact production, Supabase, Clerk, or any external application. Use invented local fixtures only. Do not modify source. No brute force, denial of service, destructive actions. Read only these supplied files, limit individual tool output to 3000 characters and complete this focused assessment within sixteen turns. Report only findings you can validate with a local proof of concept, explicitly state coverage limitations."
+  },
+  "summary": {
+    "surfaces_reviewed": 0,
+    "outcomes": {},
+    "findings_filed": 0,
+    "gaps": 1
+  },
+  "machine_observed": {
+    "agents": [
+      {
+        "agent_id": "756899bc",
+        "agent_name": "Root Agent",
+        "status": "running",
+        "skills": [],
+        "task": "\n\nLocal Codebases: - C:\\Users\\dhruv\\AppData\\Local\\Temp\\ode-strix-focused-20261009 (available at: /workspace/ode-strix-focused-20261009; this is the user's real directory, mounted live and writable — .git/.agents/.codex are read-only)\n\nSpecial instructions: Authorized narrow local source assessment only: review the provided seven files for upload signing and ownership validation. Do not contact production, Supabase, Clerk, or any external application. Use invented local fixtures only. Do not modify source. No brute force, denial of service, destructive actions. Read only these supplied files, limit individual tool output to 3000 characters and complete this focused assessment within sixteen turns. Report only findings you can validate with a local proof of concept, explicitly state coverage limitations.",
+        "is_root": true
+      }
+    ],
+    "skills_exercised": [],
+    "findings_filed": 0,
+    "source": "runtime"
+  },
+  "completeness": {
+    "complete": false,
+    "scan_status": "running",
+    "exit_reason": null,
+    "caveats": [
+      "The scan ended with status 'running' rather than completing, so coverage reflects only the work finished before it stopped.",
+      "1 agent(s) did not finish cleanly (Root Agent); any surface they held is under-covered."
+    ]
+  },
+  "entries": [],
+  "gaps": [
+    {
+      "kind": "agent_recorded_no_coverage",
+      "agent_name": "Root Agent",
+      "detail": "Root Agent ran (status: running) without recording any coverage. Whatever it examined is absent from this record."
+    }
+  ]
+}
