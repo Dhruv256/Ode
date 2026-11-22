@@ -16,7 +16,7 @@ import { allocatePhotoStory } from "../system/roles";
 
 export default function SundayMorning({ ctx }: { ctx: RenderCtx }) {
   const reduced = useReducedMotion();
-  const allocation = allocatePhotoStory(ctx.photos, ctx.hero?.id);
+  const allocation = allocatePhotoStory(ctx.photos, ctx.hero?.id, ctx.finalePhoto);
   const twoImageRoll = [allocation.reveal, ...allocation.pair, ...allocation.carousel, ...allocation.secondaryPair, ...allocation.montage].filter(Boolean) as PhotoAsset[];
   const favorites = memorySlides(ctx, ["song","movie","place","thingsTheyLove"]);
   return <div className="tp-paper min-h-screen" style={{ background: ctx.theme.bg, color: ctx.theme.text }}>
@@ -30,7 +30,7 @@ export default function SundayMorning({ ctx }: { ctx: RenderCtx }) {
     <Scene data-experience-chapter className="mx-auto grid max-w-5xl gap-10 px-6 py-16 md:grid-cols-2 md:items-center" still>{allocation.memory ? <Photo photo={allocation.memory} treatment="warm" aspect="w-full" footprint="compact" ratio="postcard" /> : null}<div><p className="font-mono text-[9px] uppercase tracking-widest2 opacity-40">one memory before noon</p><p className="mt-7 font-display text-[clamp(2.2rem,6vw,4.5rem)] italic leading-tight" data-long-copy={(ctx.memories.memory?.length ?? 0) > 160 || undefined}><PersonalizedAnswer field={ctx.memories.memory ? "memory" : undefined}>{ctx.memories.memory || "The kind of morning you remember years later."}</PersonalizedAnswer></p></div></Scene>
     <PersonalizationSections ctx={ctx} />
     <Letter ctx={ctx} />
-    <footer className="grid min-h-[34svh] place-items-center px-6 py-14 text-center"><div>{allocation.finale ? <div className="mx-auto mb-7 w-28 sm:w-36"><Photo photo={allocation.finale} treatment="warm" aspect="aspect-[4/5] w-full" footprint="compact" showCaption={false} ratio="postcard" /></div> : null}<p className="font-hand text-[clamp(2.8rem,9vw,6.5rem)] leading-[.86]" data-long-copy={(ctx.memories.ending?.length ?? 0) > 160 || undefined}><PersonalizedAnswer field={ctx.memories.ending ? "ending" : undefined}><MessageReveal text={ctx.memories.ending || "with all our love"} template={ctx.id} /></PersonalizedAnswer></p></div></footer>
+    <footer className="grid min-h-[34svh] place-items-center px-6 py-14 text-center"><div className="w-full min-w-0">{allocation.finale ? <div className="tp-final-photo"><Photo photo={allocation.finale} finale treatment="warm" aspect="aspect-[4/5] w-full" footprint="compact" showCaption={false} ratio="postcard" /></div> : null}<p className="font-hand text-[clamp(2.8rem,9vw,6.5rem)] leading-[.86]" data-long-copy={(ctx.memories.ending?.length ?? 0) > 160 || undefined}><PersonalizedAnswer field={ctx.memories.ending ? "ending" : undefined}><MessageReveal text={ctx.memories.ending || "with all our love"} template={ctx.id} /></PersonalizedAnswer></p></div></footer>
   </div>;
 }
 

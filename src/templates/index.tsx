@@ -12,19 +12,23 @@ import { assignRoles } from "./system/roles";
 import type { MemBundle, RenderCtx } from "./system/types";
 
 /* ── template modules ── */
-const ContactSheet = dynamic(() => import("./contact-sheet"));
-const CutAndPaste = dynamic(() => import("./cut-and-paste"));
-const CoverStar = dynamic(() => import("./cover-star"));
-const InternetPerson = dynamic(() => import("./internet-person"));
-const Archive = dynamic(() => import("./archive"));
-const AfterDark = dynamic(() => import("./after-dark"));
-const SundayMorning = dynamic(() => import("./sunday-morning"));
-const Yearbook = dynamic(() => import("./yearbook"));
+function TemplateLoading() {
+  return <p role="status" className="min-h-48 p-8 font-mono text-sm">Loading style…</p>;
+}
 
-const Cinema = dynamic(() => import("./cinema"));
-const PolaroidWall = dynamic(() => import("./polaroid-wall"));
-const Dreamscape = dynamic(() => import("./dreamscape"));
-const PosterCity = dynamic(() => import("./poster-city"));
+const ContactSheet = dynamic(() => import("./contact-sheet"), { loading: TemplateLoading });
+const CutAndPaste = dynamic(() => import("./cut-and-paste"), { loading: TemplateLoading });
+const CoverStar = dynamic(() => import("./cover-star"), { loading: TemplateLoading });
+const InternetPerson = dynamic(() => import("./internet-person"), { loading: TemplateLoading });
+const Archive = dynamic(() => import("./archive"), { loading: TemplateLoading });
+const AfterDark = dynamic(() => import("./after-dark"), { loading: TemplateLoading });
+const SundayMorning = dynamic(() => import("./sunday-morning"), { loading: TemplateLoading });
+const Yearbook = dynamic(() => import("./yearbook"), { loading: TemplateLoading });
+
+const Cinema = dynamic(() => import("./cinema"), { loading: TemplateLoading });
+const PolaroidWall = dynamic(() => import("./polaroid-wall"), { loading: TemplateLoading });
+const Dreamscape = dynamic(() => import("./dreamscape"), { loading: TemplateLoading });
+const PosterCity = dynamic(() => import("./poster-city"), { loading: TemplateLoading });
 
 import { cn } from "@/lib/utils";
 import { SoundtrackControl } from "@/components/media/SoundtrackControl";
@@ -88,7 +92,7 @@ export function buildCtx(
   const colors = resolveProjectColors(project.paletteId, project.customPalette) ?? ["#F4F0E7", "#1B1815", "#B4502A", "#6E56CF", "#5A6B4D"];
   const theme = buildTemplateTheme(colors, id);
   const style = TEMPLATE_STYLE[id];
-  const ordered = [...project.photos].sort((a, b) => a.order - b.order);
+  const ordered = project.photos.filter(photo => !photo.endingOnly).sort((a, b) => a.order - b.order);
   const photos = ["archive","cinema","yearbook"].includes(id) ? chronologicalPhotos(ordered) : ordered;
   const dense = DENSE_TEMPLATES.includes(id);
   const roles = assignRoles(photos, { dense, strips: true });
@@ -107,7 +111,7 @@ export function buildCtx(
     title: milestoneTitleFor(project.age, id) ?? `${project.age ?? "A"} — a celebration`,
     photos,
     hero: roles.find(r=>r.role==="hero")?.photo ?? photos[0],
-    finalePhoto: roles.find((r) => r.role === "finale")?.photo ?? photos[photos.length - 1],
+    finalePhoto: project.photos.find(photo => photo.id === project.finalPhotoId && photo.kind !== "video"),
     roles,
     interests: project.interests.map((i) => i.label.toLowerCase()),
     memories: buildMemories(project),

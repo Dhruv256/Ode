@@ -215,6 +215,8 @@ export interface PhotoAsset {
   focalPoint: FocalPoint;
   fit: ImageFitMode;
   heroEligible: boolean;
+  /** Upload reserved for the ending. */
+  endingOnly?: boolean;
   /** Exactly one photo may be the hero at a time. */
   isHero: boolean;
   order: number;
@@ -345,6 +347,7 @@ export interface BirthdayProject {
   paletteId?: PaletteId;
   customPalette?: string[];
   photos: PhotoAsset[];
+  finalPhotoId?: string;
   photoMode?: PhotoMode;
   interests: Interest[];
   memories: Memory[];

@@ -33,7 +33,7 @@ export default function InternetPerson({ ctx }: { ctx: RenderCtx }) {
       <p className="mt-4 text-center font-mono text-[8px] uppercase tracking-[.32em] opacity-40">one window at a time · the rest stay safely minimized</p>
     </motion.main>}</AnimatePresence>
     <PersonalizationSections ctx={ctx} />
-    <footer className="tp-desktop-ending"><p>&gt; birthday.exe · update complete</p><h2><PersonalizedAnswer field={ctx.memories.ending ? "ending" : undefined}><MessageReveal text={ctx.memories.ending || "The best part is next."} template={ctx.id} /></PersonalizedAnswer></h2></footer>
+    <footer className="tp-desktop-ending">{ctx.finalePhoto && <Photo photo={ctx.finalePhoto} finale treatment={ctx.treatment} className="tp-final-photo mb-6" showCaption={false} />}<p>&gt; birthday.exe · update complete</p><h2><PersonalizedAnswer field={ctx.memories.ending ? "ending" : undefined}><MessageReveal text={ctx.memories.ending || "The best part is next."} template={ctx.id} /></PersonalizedAnswer></h2></footer>
   </div>;
 }
 

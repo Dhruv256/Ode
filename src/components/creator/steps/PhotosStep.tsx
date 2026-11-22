@@ -27,15 +27,55 @@ export default function PhotosStep({ nav }: { nav: StepNav }) {
   const [uploadError, setUploadError] = useState("");
   const [confirmClear, setConfirmClear] = useState(false);
   const [removed, setRemoved] = useState<PhotoAsset[]>([]);
+  const removedFinalId = useRef<string>();
   const [uploading, setUploading] = useState(false);
   const uploadLock = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [choosingFinal, setChoosingFinal] = useState(false);
+  const finalInput = useRef<HTMLInputElement>(null);
+  const finalPhoto = project.photos.find(photo => photo.id === project.finalPhotoId);
+  const collection = project.photos.filter(photo => !photo.endingOnly);
+
+  const setFinalPhoto = (photoId?: string, upload?: PhotoAsset) => {
+    if (finalPhoto?.endingOnly && finalPhoto.id !== photoId) void removeLocalMedia(project.id, [finalPhoto.id]);
+    dispatch({ type: "setFinalPhoto", photoId, upload });
+    setChoosingFinal(false);
+  };
+
+  const uploadFinal = async (file: File) => {
+    if (uploadLock.current || !file.type.startsWith("image/")) return;
+    uploadLock.current = true;
+    setUploading(true);
+    setUploadError("");
+    const previewUrl = URL.createObjectURL(file);
+    try {
+      const { width, height } = await readImageDimensions(previewUrl);
+      if (!width || !height) throw new Error("This photo could not be opened. Choose a different image.");
+      const id = uid();
+      const saved = await saveLocalMedia(project.id, id, file);
+      if (!saved) throw new Error("Browser storage is unavailable. Try again after freeing up space.");
+      setFinalPhoto(id, {
+        id, width, height, previewUrl, fileName: file.name, mimeType: file.type,
+        orientation: orientationOf(width, height), order: project.photos.length,
+        kind: "image", endingOnly: true, fit: "original", focalPoint: { x: .5, y: .5 },
+        heroEligible: false, isHero: false,
+      });
+    } catch (error) {
+      URL.revokeObjectURL(previewUrl);
+      setUploadError(error instanceof Error ? error.message : "The Final Photo could not be saved.");
+    } finally {
+      uploadLock.current = false;
+      setUploading(false);
+    }
+  };
+
   const selectedMode = project.photoMode ?? "auto";
   const resolvedMode = resolvePhotoMode(project);
 
   const clearAllPhotos = () => {
-    setRemoved(project.photos);
-    void removeLocalMedia(project.id, project.photos.map(p=>p.id));
+    setRemoved(collection);
+    removedFinalId.current = finalPhoto?.endingOnly ? undefined : finalPhoto?.id;
+    void removeLocalMedia(project.id, collection.map(photo => photo.id));
     dispatch({ type: "clearPhotos" });
     setExpandedId(null);
     setUploadError("");
@@ -48,9 +88,9 @@ export default function PhotosStep({ nav }: { nav: StepNav }) {
       const list = Array.from(files).filter((f) => f.type.startsWith("image/") || f.type.startsWith("video/"));
       if (list.length === 0) return;
       const relinks=new Set<string>();
-      const existing=list.map(file=>{const match=project.photos.find(p=>p.needsRelink&&p.fileName===file.name&&!relinks.has(p.id));if(match)relinks.add(match.id);return match;});
-      if (project.photos.length + list.length - relinks.size > BIRTHDAY_PHOTO_LIMIT) {
-        setUploadError(`That batch would take this website past ${BIRTHDAY_PHOTO_LIMIT} photos. Nothing was dropped—remove ${project.photos.length + list.length - BIRTHDAY_PHOTO_LIMIT} file${project.photos.length + list.length - BIRTHDAY_PHOTO_LIMIT === 1 ? "" : "s"} from the batch and try again.`);
+      const existing=list.map(file=>{const match=project.photos.find(p=>!p.endingOnly&&p.needsRelink&&p.fileName===file.name&&!relinks.has(p.id));if(match)relinks.add(match.id);return match;});
+      if (collection.length + list.length - relinks.size > BIRTHDAY_PHOTO_LIMIT) {
+        setUploadError(`That batch would take this website past ${BIRTHDAY_PHOTO_LIMIT} photos. Nothing was dropped—remove ${collection.length + list.length - BIRTHDAY_PHOTO_LIMIT} file${collection.length + list.length - BIRTHDAY_PHOTO_LIMIT === 1 ? "" : "s"} from the batch and try again.`);
         return;
       }
       setUploadError("");
@@ -93,7 +133,7 @@ export default function PhotosStep({ nav }: { nav: StepNav }) {
       dispatch({ type: "addPhotos", photos: assets });
       } finally {uploadLock.current=false;setUploading(false);}
     },
-    [dispatch, project]
+    [dispatch, project, collection.length]
   );
 
   return (
@@ -103,7 +143,7 @@ export default function PhotosStep({ nav }: { nav: StepNav }) {
         Give us the<br /><em className="italic">memories.</em>
       </StepHeading>
 
-      <p className="mt-5 max-w-lg text-ink-soft">{guidanceLine(project.photos.length)}</p>
+      <p className="mt-5 max-w-lg text-ink-soft">{guidanceLine(collection.length)}</p>
 
       <fieldset className="mt-8 border border-line p-4 sm:p-5">
         <legend className="px-2 font-mono text-[10px] uppercase tracking-widest2">Photo choreography</legend>
@@ -119,19 +159,43 @@ export default function PhotosStep({ nav }: { nav: StepNav }) {
         </div>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
           <p className="font-mono text-[10px] uppercase tracking-widest2 text-ink-faint">
-            Active: {resolvedMode === "high-photo" ? "50+ Photo · every upload is rendered" : "Standard"} · {project.photos.length}/{BIRTHDAY_PHOTO_LIMIT}
+            Active: {resolvedMode === "high-photo" ? "50+ Photo · every upload is rendered" : "Standard"} · {collection.length}/{BIRTHDAY_PHOTO_LIMIT}
           </p>
-          {project.photos.length > 0 && <button type="button" disabled={uploading} aria-expanded={confirmClear} onClick={() => setConfirmClear(value => !value)} className="min-h-11 border-b border-ember px-1 font-mono text-[10px] uppercase tracking-widest2 text-ember transition-colors hover:bg-ember hover:px-3 hover:text-paper">Clear all {project.photos.length}</button>}
+          {collection.length > 0 && <button type="button" disabled={uploading} aria-expanded={confirmClear} onClick={() => setConfirmClear(value => !value)} className="min-h-11 border-b border-ember px-1 font-mono text-[10px] uppercase tracking-widest2 text-ember transition-colors hover:bg-ember hover:px-3 hover:text-paper">Clear all {collection.length}</button>}
         </div>
       </fieldset>
 
-      {confirmClear && project.photos.length > 0 && <motion.div initial={{ opacity:0, y:-4 }} animate={{ opacity:1, y:0 }} role="alertdialog" aria-label="Clear all photos" className="mt-4 flex flex-wrap items-center gap-3 border border-ember bg-paper-deep px-4 py-3">
-        <p className="mr-auto text-sm text-ink-soft">Remove all {project.photos.length} photos from this website? You can undo this before leaving this step.</p>
+      {confirmClear && collection.length > 0 && <motion.div initial={{ opacity:0, y:-4 }} animate={{ opacity:1, y:0 }} role="alertdialog" aria-label="Clear all photos" className="mt-4 flex flex-wrap items-center gap-3 border border-ember bg-paper-deep px-4 py-3">
+        <p className="mr-auto text-sm text-ink-soft">Remove all {collection.length} photos from this website? You can undo this before leaving this step.</p>
         <button type="button" onClick={() => setConfirmClear(false)} className="min-h-11 px-3 font-mono text-[10px] uppercase tracking-widest2">Keep photos</button>
-        <button type="button" onClick={clearAllPhotos} className="min-h-11 bg-ember px-4 font-mono text-[10px] uppercase tracking-widest2 text-paper">Delete all photos</button>
+        <button type="button" onClick={clearAllPhotos} className="min-h-11 bg-ember px-4 font-mono text-[10px] uppercase tracking-widest2 text-paper">{finalPhoto?.endingOnly ? "Delete collection photos" : "Delete all photos"}</button>
       </motion.div>}
 
-      {removed.length > 0 && <div role="status" className="mt-4 flex flex-wrap items-center gap-3 border border-line p-4"><p>{removed.length} photos removed.</p><button type="button" className="min-h-11 underline" onClick={async()=>{const restore=removed.filter(p=>!project.photos.some(existing=>existing.id===p.id));for(const photo of restore){if(photo.previewUrl.startsWith("blob:")){const blob=await fetch(photo.previewUrl).then(r=>r.blob());await saveLocalMedia(project.id,photo.id,blob);}}dispatch({type:"addPhotos",photos:restore.map((p,i)=>({...p,order:project.photos.length+i}))});setRemoved([]);}}>Undo clear all</button></div>}
+      {removed.length > 0 && <div role="status" className="mt-4 flex flex-wrap items-center gap-3 border border-line p-4"><p>{removed.length} photos removed.</p><button type="button" className="min-h-11 underline" onClick={async()=>{const restore=removed.filter(p=>!project.photos.some(existing=>existing.id===p.id));for(const photo of restore){if(photo.previewUrl.startsWith("blob:")){const blob=await fetch(photo.previewUrl).then(r=>r.blob());await saveLocalMedia(project.id,photo.id,blob);}}dispatch({type:"addPhotos",photos:restore.map((p,i)=>({...p,order:project.photos.length+i}))});if(removedFinalId.current && !project.finalPhotoId)dispatch({type:"setFinalPhoto",photoId:removedFinalId.current});setRemoved([]);}}>Undo clear all</button></div>}
+      <fieldset className="mt-8 min-w-0 border border-line p-4">
+        <legend className="px-2 font-display text-lg">Final Photo</legend>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          {finalPhoto && !finalPhoto.needsRelink && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={finalPhoto.previewUrl} alt={finalPhoto.caption || finalPhoto.fileName} className="h-14 w-14 object-contain" />
+          )}
+          <span className="min-w-0 break-all text-sm">{finalPhoto ? finalPhoto.fileName : "Use the style’s default ending"}</span>
+          <button type="button" className="min-h-11 px-1 underline" disabled={uploading} aria-expanded={choosingFinal} onClick={() => setChoosingFinal(value => !value)}>{finalPhoto ? "Change" : "Choose photo"}</button>
+          {finalPhoto && <button type="button" className="min-h-11 px-1 underline" disabled={uploading} onClick={() => setFinalPhoto()}>Remove</button>}
+        </div>
+        {choosingFinal && <div className="mt-2 flex flex-wrap items-center gap-3">
+          <select aria-label="Choose an uploaded Final Photo" value={finalPhoto?.endingOnly ? "" : finalPhoto?.id ?? ""} disabled={uploading} onChange={event => setFinalPhoto(event.currentTarget.value)} className="min-h-11 max-w-full border border-line bg-paper px-2">
+            <option value="" disabled>Choose an uploaded photo</option>
+            {collection.filter(photo => photo.kind !== "video" && !photo.needsRelink).map(photo => <option key={photo.id} value={photo.id}>{photo.fileName}</option>)}
+          </select>
+          <button type="button" disabled={uploading} className="min-h-11 border border-line px-3" onClick={() => finalInput.current?.click()}>Upload Final Photo</button>
+          <input ref={finalInput} type="file" accept="image/*" className="hidden" onChange={event => {
+            const file = event.currentTarget.files?.[0];
+            if (file) void uploadFinal(file);
+            event.currentTarget.value = "";
+          }} />
+        </div>}
+      </fieldset>
       {/* Dropzone */}
       <div
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
@@ -151,7 +215,7 @@ export default function PhotosStep({ nav }: { nav: StepNav }) {
           dragging ? "border-ember bg-paper-deep" : "border-ink-faint/50 hover:border-ink"
         )}
       >
-        <p className="font-display text-2xl font-light italic">{uploading ? "Saving originals…" : project.photos.length ? "Add more photos" : "Drop photos here"}</p>
+        <p className="font-display text-2xl font-light italic">{uploading ? "Saving originals…" : collection.length ? "Add more photos" : "Drop photos here"}</p>
         <p className="mt-2 font-mono text-[11px] uppercase tracking-widest2 text-ink-faint">
           or tap to browse · multiple files welcome · stays on your device
         </p>
@@ -177,11 +241,11 @@ export default function PhotosStep({ nav }: { nav: StepNav }) {
         </p>
       )}
 
-      {project.photos.length > 0 && <PhotoOrganizer />}
+      {collection.length > 0 && <PhotoOrganizer />}
       {/* Photo wall */}
-      {project.photos.length > 0 && (
+      {collection.length > 0 && (
         <ul className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {[...project.photos]
+          {[...collection]
             .sort((a, b) => a.order - b.order)
             .map((photo) => (
               <PhotoCard
@@ -196,7 +260,7 @@ export default function PhotosStep({ nav }: { nav: StepNav }) {
         </ul>
       )}
 
-      <div className="mt-14 flex items-center gap-5 border-t border-line pt-6">
+      <div className="mt-14 flex flex-wrap items-center gap-5 border-t border-line pt-6">
         <ActionButton onClick={nav.onNext}>
           Continue → Words
         </ActionButton>
@@ -275,7 +339,7 @@ function PhotoCard({
           <video src={photo.previewUrl} muted playsInline preload="metadata" className="aspect-square w-full select-none object-cover" style={{ objectPosition: `${photo.focalPoint.x * 100}% ${photo.focalPoint.y * 100}%`, objectFit: photo.fit === "fit" ? "contain" : "cover" }} />
         ) : (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={photo.previewUrl} alt={photo.caption ?? photo.fileName} draggable={false} className="aspect-square w-full select-none object-cover" style={{ objectPosition: `${photo.focalPoint.x * 100}% ${photo.focalPoint.y * 100}%`, objectFit: photo.fit === "fit" ? "contain" : "cover" }} />
+          <img src={photo.previewUrl} alt={photo.caption ?? photo.fileName} loading="lazy" decoding="async" draggable={false} className="aspect-square w-full select-none object-cover" style={{ objectPosition: `${photo.focalPoint.x * 100}% ${photo.focalPoint.y * 100}%`, objectFit: photo.fit === "fit" ? "contain" : "cover" }} />
         )}
 
         {/* Focal marker */}

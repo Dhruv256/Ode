@@ -35,7 +35,15 @@ export function validateWebsite(value: unknown): BirthdayProject {
   if(new Set(p.photos.map(photo=>photo.id)).size!==p.photos.length) throw new RequestError('Each photo needs its own ID.');
   if(p.soundtrack && (!mediaUrl(p.soundtrack.previewUrl,published) || !text(p.soundtrack.fileName,240) || !text(p.soundtrack.mimeType,100))) throw new RequestError('This soundtrack has not finished uploading.');
   if(p.customMemories!==undefined && !Array.isArray(p.customMemories)) throw new RequestError('Personal memories must be a list.');
-  if (p.photos.length > BIRTHDAY_PHOTO_LIMIT) throw new RequestError(`Birthday websites can hold up to ${BIRTHDAY_PHOTO_LIMIT} photos.`);
+  const collection = p.photos.filter(photo => !photo.endingOnly);
+  const selectedFinal = p.photos.find(photo => photo.id === p.finalPhotoId);
+  if (p.finalPhotoId !== undefined && (!selectedFinal || selectedFinal.kind === "video" || selectedFinal.mimeType?.startsWith("video/"))) {
+    throw new RequestError("Choose an uploaded image for the Final Photo.");
+  }
+  if (p.photos.some(photo => photo.endingOnly && photo.id !== selectedFinal?.id)) {
+    throw new RequestError("Only the selected Final Photo may be reserved for the ending.");
+  }
+  if (collection.length > BIRTHDAY_PHOTO_LIMIT) throw new RequestError(`Birthday websites can hold up to ${BIRTHDAY_PHOTO_LIMIT} photos.`);
   if (p.photoMode && !["auto", "standard", "high-photo"].includes(p.photoMode)) throw new RequestError("Choose a valid photo mode.");
   if ((p.customMemories?.length ?? 0) > CUSTOM_MEMORY_LIMIT) throw new RequestError(`Add up to ${CUSTOM_MEMORY_LIMIT} custom memories.`);
   for (const memory of p.customMemories ?? []) {

@@ -185,3 +185,18 @@
 .tp-custom-vibe small,.tp-custom-vibe span {display:block;}
 @keyframes tp-answer-arrive {from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){.tp-personal-answer>.tp-answer {animation:none;opacity:1;}}
+
+.birthday-template .tp-final-photo {
+  width: min(100%, 35rem);
+  margin-inline: auto;
+}
+.birthday-template .tp-frame.tp-final-photo { width: min(100%, 35rem); }
+.tp-frame[data-photo-loading] {
+  background: repeating-linear-gradient(135deg, var(--tp-panel), var(--tp-panel) 9px, color-mix(in srgb, var(--tp-panel), var(--tp-text) 10%) 9px, color-mix(in srgb, var(--tp-panel), var(--tp-text) 10%) 10px);
+}
+.tp-frame > .tp-progressive-image { transition: opacity 220ms ease, filter 320ms ease; }
+.tp-frame[data-photo-loading] > .tp-progressive-image { opacity: 0; }
+.tp-poster-opening { container-type: inline-size; }
+@media (prefers-reduced-motion: reduce) {
+  .tp-frame > .tp-progressive-image { transition: none; }
+}

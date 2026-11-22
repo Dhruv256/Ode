@@ -71,6 +71,7 @@ type ProjectAction =
   | { type: "setAge"; age: number | null; birthdayDate?: string }
   | { type: "setPalette"; paletteId: string }
   | { type: "setCustomPaletteColors"; colors: string[] }
+  | { type: "setFinalPhoto"; photoId?: string; upload?: BirthdayProject["photos"][number] }
   | { type: "addPhotos"; photos: BirthdayProject["photos"] }
   | { type: "setPhotoMode"; mode: PhotoMode }
   | {
@@ -168,6 +169,14 @@ export function projectReducer(state: BirthdayProject, action: ProjectAction): B
         photos: [...state.photos, ...action.photos],
       });
 
+    case "setFinalPhoto": {
+      const id = action.upload?.id ?? action.photoId;
+      if (id && !action.upload && !state.photos.some(photo => photo.id === id && photo.kind !== "video")) return state;
+      const photos = state.photos.filter(photo => !photo.endingOnly || photo.id === id);
+      if (action.upload) photos.push(action.upload);
+      return touch({ ...state, photos, finalPhotoId: id });
+    }
+
     case "setPhotoMode":
       return touch({ ...state, photoMode: action.mode });
 
@@ -182,6 +191,7 @@ export function projectReducer(state: BirthdayProject, action: ProjectAction): B
     case "removePhoto":
       return touch({
         ...state,
+        finalPhotoId: state.finalPhotoId === action.photoId ? undefined : state.finalPhotoId,
         photos: state.photos
           .filter((p) => p.id !== action.photoId)
           .map((p, i) => ({ ...p, order: i })),
@@ -267,8 +277,11 @@ export function projectReducer(state: BirthdayProject, action: ProjectAction): B
         ),
       });
 
-    case "clearPhotos":
-      return state.photos.length ? touch({ ...state, photos: [] }) : state;
+    case "clearPhotos": {
+      const photos = state.photos.filter(photo => photo.endingOnly);
+      if (photos.length === state.photos.length) return state;
+      return touch({ ...state, photos, finalPhotoId: photos[0]?.id });
+    }
 
     case "removeCustomMemory":
       return touch({

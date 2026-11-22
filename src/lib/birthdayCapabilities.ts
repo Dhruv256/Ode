@@ -8,7 +8,7 @@ export const CAROUSEL_AUTOPLAY_MS = 2500;
 export function resolvePhotoMode(project: Pick<BirthdayProject, "photos" | "photoMode">): "standard" | "high-photo" {
   const mode: PhotoMode = project.photoMode ?? "auto";
   if (mode === "high-photo" || mode === "standard") return mode;
-  return project.photos.length >= HIGH_PHOTO_THRESHOLD ? "high-photo" : "standard";
+  return project.photos.filter(photo => !photo.endingOnly).length >= HIGH_PHOTO_THRESHOLD ? "high-photo" : "standard";
 }
 
 export interface PhotoUsageReport {

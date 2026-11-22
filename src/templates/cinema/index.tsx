@@ -17,7 +17,7 @@ import { allocatePhotoStory } from "../system/roles";
 
 export default function Cinema({ ctx }: { ctx: RenderCtx }) {
   const reduced = useReducedMotion();
-  const allocation = allocatePhotoStory(ctx.photos, ctx.hero?.id);
+  const allocation = allocatePhotoStory(ctx.photos, ctx.hero?.id, ctx.finalePhoto);
   const montage = [allocation.feature, ...allocation.carousel, ...allocation.secondaryPair, ...allocation.montage].filter(Boolean) as PhotoAsset[];
   return <div className="overflow-hidden bg-[var(--tp-bg)] text-[var(--tp-text)]">
     <TitleCard eyebrow="a birthday picture presents" title="ODE PICTURES" sub={`a film for ${ctx.name}`} />
@@ -33,7 +33,7 @@ export default function Cinema({ ctx }: { ctx: RenderCtx }) {
     <Scene data-experience-chapter className="grid min-h-[44svh] place-items-center px-6 py-14 text-center"><p className="max-w-4xl font-display text-[clamp(2.7rem,8vw,6rem)] italic leading-[.9]" style={{ fontFamily: ctx.fonts.display }} data-long-copy={(ctx.memories.message?.length ?? 0) > 160 || undefined}><PersonalizedAnswer field={ctx.memories.message ? "message" : undefined}><MessageReveal text={ctx.memories.message || `Happy birthday, ${ctx.name}. This film was always yours.`} template={ctx.id} /></PersonalizedAnswer></p></Scene>
     <footer><Scene data-experience-chapter className="grid min-h-[52svh] place-items-center border-t border-white/15 px-6 py-16 text-center"><div className="font-mono text-[9px] uppercase leading-[2.2] tracking-[.3em]"><p>a film about {ctx.fullName}</p><p className="mt-8">music supervised by<br /><PersonalizedAnswer field={ctx.memories.song ? "song" : undefined}>{ctx.memories.song || "the songs that found us"}</PersonalizedAnswer></p><p className="mt-8">produced with<br />an unreasonable amount of love</p><h2 className="mt-12 text-2xl" data-long-copy={(ctx.memories.ending?.length ?? 0) > 160 || undefined}><PersonalizedAnswer field={ctx.memories.ending ? "ending" : undefined}><MessageReveal text={ctx.memories.ending || "THE STORY CONTINUES"} template={ctx.id} /></PersonalizedAnswer></h2></div></Scene>
     {allocation.finale ?
-    <Scene className="grid min-h-[36svh] place-items-center px-6 py-14 text-center"><div className="w-full max-w-xl"><Photo photo={allocation.finale} treatment="none" aspect="w-full" footprint="compact" ratio="cinematic" /><p className="mt-4 font-mono text-[9px] uppercase tracking-[.38em] opacity-45">post-credit scene</p></div></Scene> : null}</footer>
+    <Scene className="grid min-h-[36svh] place-items-center px-6 py-14 text-center"><div className="w-full max-w-xl"><Photo photo={allocation.finale} finale treatment="none" aspect="w-full" footprint="compact" ratio="cinematic" /><p className="mt-4 font-mono text-[9px] uppercase tracking-[.38em] opacity-45">post-credit scene</p></div></Scene> : null}</footer>
   </div>;
 }
 

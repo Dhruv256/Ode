@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { CAROUSEL_AUTOPLAY_MS } from "@/lib/birthdayCapabilities";
 import { MOTION, useTemplateMotion } from "./motion";
 import { TEMPLATE_FRAMES } from './frames';
-import { PhotoFrameContext } from './PhotoFrameContext';
+import { CarouselColumnsContext, CarouselPreloadContext, PhotoFrameContext } from './PhotoFrameContext';
 import type { PersonalAnswer } from '@/lib/personalization';
 import { PersonalizedAnswer } from './PersonalizedAnswer';
 
@@ -65,6 +65,7 @@ export function AutoCarousel<T>({
   const [manual, setManual] = useState(false);
   const [interacting, setInteracting] = useState(false);
   const [visibleOnScreen, setVisibleOnScreen] = useState(false);
+  const [nearViewport, setNearViewport] = useState(false);
   const [hidden, setHidden] = useState(false);
   const root = useRef<HTMLElement>(null);
   const paused = hovered || focused || manual || interacting || hidden || !visibleOnScreen;
@@ -84,7 +85,7 @@ export function AutoCarousel<T>({
     return () => window.clearInterval(interval);
   }, [effectiveAutoMs, count, next, paused, reduced]);
 
-  useEffect(()=>{const node=root.current;if(!node)return;const observer=new IntersectionObserver(([entry])=>setVisibleOnScreen(entry.isIntersecting),{threshold:.2});observer.observe(node);const visibility=()=>setHidden(document.hidden);visibility();document.addEventListener("visibilitychange",visibility);return()=>{observer.disconnect();document.removeEventListener("visibilitychange",visibility);};},[]);
+  useEffect(()=>{const node=root.current;if(!node)return;const observer=new IntersectionObserver(([entry])=>setVisibleOnScreen(entry.isIntersecting),{threshold:.2});observer.observe(node);const nearby = new IntersectionObserver(([entry]) => setNearViewport(entry.isIntersecting), { rootMargin: "400px" });nearby.observe(node);const visibility=()=>setHidden(document.hidden);visibility();document.addEventListener("visibilitychange",visibility);return()=>{observer.disconnect();nearby.disconnect();document.removeEventListener("visibilitychange",visibility);};},[]);
 
   useEffect(() => () => {
     if (resumeTimer.current) window.clearTimeout(resumeTimer.current);
@@ -142,16 +143,25 @@ export function AutoCarousel<T>({
       style={sizer ? {display:"grid"} : undefined}
     >
       {sizer && <div aria-hidden="true" className="invisible pointer-events-none" style={{gridArea:"1 / 1"}}>{sizer}</div>}
-      <PhotoFrameContext.Provider value={TEMPLATE_FRAMES[templateId].repeated}><div style={sizer ? {gridArea:"1 / 1",alignSelf:"center"} : undefined} className={cn("tp-carousel-track grid gap-[var(--image-gap)]", shown === 2 && "grid-cols-2", shown === 3 && "grid-cols-3", kind === "vertical" && "grid-cols-1")}>
+      <PhotoFrameContext.Provider value={TEMPLATE_FRAMES[templateId].repeated}><CarouselColumnsContext.Provider value={kind === "vertical" ? 1 : shown}><div style={sizer ? {gridArea:"1 / 1",alignSelf:"center"} : undefined} className={cn("tp-carousel-track grid gap-[var(--image-gap)]", shown === 2 && "grid-cols-2", shown === 3 && "grid-cols-3", kind === "vertical" && "grid-cols-1")}>
         {slots.map(({ item, index, slot }) => <motion.div
-          key={`${getKey(item, index)}-${active}-${slot}`}
+          key={getKey(item, index)}
           initial={reduced ? false : initialByKind[kind]}
           animate={{ opacity: 1, x: 0, y: 0, scale: 1, rotateY: 0, rotateZ: kind === "stack" ? (slot - 1) * 1.5 : 0 }}
           transition={{ duration: reduced ? 0 : MOTION.carousel, ease: MOTION.entrance }}
           className={cn("min-w-0", itemClassName)}
           aria-hidden={slot > 0 ? undefined : false}
         >{renderItem(item, index, slot)}</motion.div>)}
-      </div></PhotoFrameContext.Provider>
+        {!reading && nearViewport && shown < count && (
+          <div aria-hidden="true" className="pointer-events-none invisible absolute inset-x-0 top-0">
+            <div className={cn("grid gap-[var(--image-gap)]", shown === 2 && "grid-cols-2", shown === 3 && "grid-cols-3")}>
+              <CarouselPreloadContext.Provider value>
+                {renderItem(items[(active + shown) % count], (active + shown) % count, shown)}
+              </CarouselPreloadContext.Provider>
+            </div>
+          </div>
+        )}
+      </div></CarouselColumnsContext.Provider></PhotoFrameContext.Provider>
     </div>
     {showControls && count > 1 ? <div role="group" aria-label={`${label} controls`} className={cn("mt-4 flex items-center justify-between gap-4", controlsClassName)}>
       <button type="button" onClick={() => { previous(); pauseTemporarily(); }} aria-label="Previous item" className="tp-carousel-control">←</button>

@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext, useRef, useState } from "react";
 import Image from "next/image";
+import { useLocalPhotoPreview } from "@/lib/localPhotoPreview";
 import type { PhotoAsset } from "@/lib/types";
 import type { Treatment } from "./types";
 import { cn } from "@/lib/utils";
 import { FRAME_RATIOS, normalizedFocal, photoFrameRatio, type FrameRatio } from "./frames";
-import { PhotoFrameContext } from './PhotoFrameContext';
+import { CarouselColumnsContext, CarouselPreloadContext, PhotoFrameContext } from './PhotoFrameContext';
 
 /**
  * Shared image primitive for all generated experiences.
@@ -52,6 +53,7 @@ export function Photo({
   footprint = "normal",
   ratio,
   priority = false,
+  finale = false,
 }: {
   photo: PhotoAsset;
   className?: string;
@@ -65,17 +67,24 @@ export function Photo({
   footprint?: "compact" | "normal" | "cinematic" | "unbounded";
   ratio?: FrameRatio;
   priority?: boolean;
+  finale?: boolean;
 }) {
   const focalX = normalizedFocal(photo.focalPoint?.x) * 100;
   const focalY = normalizedFocal(photo.focalPoint?.y) * 100;
   const t = treatment ?? "none";
   const filter = imageFilter(t);
   const isVideo = photo.kind === "video" || photo.mimeType?.startsWith("video/");
+  const preload = useContext(CarouselPreloadContext);
+  const columns = useContext(CarouselColumnsContext);
   const carouselRatio = useContext(PhotoFrameContext);
-  const [failed, setFailed] = useState(false);
-  useEffect(()=>setFailed(false),[photo.previewUrl]);
+  const frame = useRef<HTMLElement>(null);
+  const source = useLocalPhotoPreview(photo.previewUrl, !isVideo && !photo.needsRelink && Math.max(photo.width, photo.height) > 1600 && !/image\/webp/i.test(photo.mimeType ?? ""), priority || preload, frame);
+  const [failedSource, setFailedSource] = useState<string>();
+  const [loadedSource, setLoadedSource] = useState<string>();
+  const failed = failedSource === photo.previewUrl;
+  const loaded = loadedSource === photo.previewUrl;
   const legacyRatio=aspect?.includes("aspect-square")?"1 / 1":aspect?.match(/aspect-\[(\d+)\/(\d+)\]/)?.slice(1).join(" / ");
-  const frameRatio = carouselRatio ? FRAME_RATIOS[carouselRatio] : photoFrameRatio(ratio, photo.orientation, legacyRatio);
+  const frameRatio = finale && photo.width > 0 && photo.height > 0 ? `${photo.width} / ${photo.height}` : carouselRatio ? FRAME_RATIOS[carouselRatio] : photoFrameRatio(ratio, photo.orientation, legacyRatio);
   const frameStyle = { ...style, aspectRatio: frameRatio };
 
   if (photo.needsRelink || failed) {
@@ -94,17 +103,19 @@ export function Photo({
   const sourceRatio = photo.width / photo.height;
   const cropRatio = sourceRatio / (frameWidth / frameHeight);
   const excessiveCrop = cropRatio > 1.45 || cropRatio < 1 / 1.45;
-  const resolvedFit = fit ?? (photo.fit === "fit" || photo.fit === "original" || photo.analysis?.isGroupPhoto || (excessiveCrop && photo.fit !== "manual") ? "contain" : "cover");
+  const resolvedFit = finale ? "contain" : fit ?? (photo.fit === "fit" || photo.fit === "original" || photo.analysis?.isGroupPhoto || (excessiveCrop && photo.fit !== "manual") ? "contain" : "cover");
   const footprintClass = footprint === "compact" ? "tp-photo-compact" : footprint === "cinematic" ? "tp-photo-cinematic" : footprint === "unbounded" ? "" : "tp-photo-normal";
 
   return (
     <figure
+      ref={frame}
       data-photo-id={photo.id}
       className={cn("tp-frame", footprintClass, aspect, className)}
       style={frameStyle}
       data-frame-ratio={ratio}
       data-source-orientation={photo.orientation}
       data-render-fit={resolvedFit}
+      data-photo-loading={!isVideo && !loaded || undefined}
     >
       {isVideo ? (
         <video
@@ -115,11 +126,11 @@ export function Photo({
           className={cn("absolute inset-0 h-full w-full object-cover", imgClassName)}
           style={{ objectPosition: `${focalX}% ${focalY}%`, objectFit: resolvedFit, filter }}
           aria-label={photo.caption || photo.fileName}
-          onError={() => setFailed(true)}
+          onError={() => setFailedSource(photo.previewUrl)}
         />
-      ) : (
-        <Image src={photo.previewUrl} alt={photo.caption || `A memory${photo.location ? ` in ${photo.location}` : ""}`} fill sizes="(max-width: 639px) 90vw, (max-width: 1023px) 46vw, 640px" priority={priority} unoptimized={!/^https:\/\/[^/]+\.supabase\.co\/storage\/v1\/object\/public\//.test(photo.previewUrl)} draggable={false} onError={() => setFailed(true)} className={cn("object-cover", imgClassName)} style={{ objectPosition: `${focalX}% ${focalY}%`, objectFit: resolvedFit, filter }} />
-      )}
+      ) : source ? (
+        <Image src={source} alt={photo.caption || `A memory${photo.location ? ` in ${photo.location}` : ""}`} fill sizes={carouselRatio ? `(max-width: 639px) ${Math.round(88 / columns)}vw, ${Math.round(900 / columns)}px` : finale ? "(max-width: 639px) 88vw, 560px" : "(max-width: 639px) 90vw, (max-width: 1023px) 56vw, 800px"} priority={priority} loading={preload ? "eager" : undefined} unoptimized={!/^https:\/\/[^/]+\.supabase\.co\/storage\/v1\/object\/public\//.test(photo.previewUrl)} draggable={false} onLoad={() => setLoadedSource(photo.previewUrl)} onError={() => setFailedSource(photo.previewUrl)} className={cn("tp-progressive-image object-cover", imgClassName)} style={{ objectPosition: `${focalX}% ${focalY}%`, objectFit: resolvedFit, filter }} />
+      ) : null}
       {isVideo && <button type="button" className="absolute bottom-3 right-3 z-[4] border border-white/80 bg-black/55 px-2 py-1 font-mono text-[9px] uppercase tracking-widest text-white" onClick={(e) => { const video = e.currentTarget.parentElement?.querySelector("video"); if (!video) return; video.paused ? void video.play() : video.pause(); }}>play clip</button>}
       {overlayKinds(t).map((o, i) => (
         <span

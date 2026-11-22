@@ -27,7 +27,7 @@ async function uploadBrowserMedia(input: {
   });
   const signature = await signatureResponse.json() as UploadSignature;
   if (!signatureResponse.ok || !signature.uploadUrl) throw new Error(signature.error || "Could not prepare the media upload.");
-  const upload = await fetch(signature.uploadUrl, { method: "PUT", headers: { "content-type": contentType }, body: blob });
+  const upload = await fetch(signature.uploadUrl, { method: "PUT", headers: { "content-type": contentType, "cache-control": "max-age=31536000" }, body: blob });
   if (!upload.ok) throw new Error(`Could not upload ${input.fileName}. Check the birthday-media Storage bucket and try again.`);
   return signature.publicUrl;
 }

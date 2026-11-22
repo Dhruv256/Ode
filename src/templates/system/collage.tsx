@@ -74,19 +74,23 @@ export function PolaroidCard({
   rotation,
   note,
   className,
+  finale = false,
+  priority = false,
 }: {
   photo: PhotoAsset;
   treatment: Treatment;
   rotation?: number;
   note?: string;
   className?: string;
+  finale?: boolean;
+  priority?: boolean;
 }) {
   return (
     <figure
       className={cn("bg-white p-2 pb-3 shadow-[0_6px_18px_rgba(0,0,0,0.12)]", className)}
       style={rotation ? { transform: `rotate(${rotation}deg)` } : undefined}
     >
-      <Photo photo={photo} treatment={treatment} aspect="aspect-square w-full" showCaption={false} />
+      <Photo photo={photo} treatment={treatment} aspect="aspect-square w-full" showCaption={false} finale={finale} priority={priority} />
       <figcaption className="pt-2 text-center font-hand text-base leading-none opacity-80">
         {note || photo.caption || "—"}
       </figcaption>

@@ -8,5 +8,7 @@ export default function TemplateQa({ searchParams }: { searchParams: Record<stri
   if (process.env.NODE_ENV === "production" || process.env.ODE_QA_MODE !== "true") notFound();
   const id = searchParams.template ?? "contact-sheet";
   if (!Object.hasOwn(TEMPLATES, id)) notFound();
-  return <TemplateView project={templateFixture(id as TemplateId, Number(searchParams.photos ?? 12), searchParams.case, searchParams.vibe)} templateId={id as TemplateId} device="auto" />;
+  const project = templateFixture(id as TemplateId, Number(searchParams.photos ?? 12), searchParams.case, searchParams.vibe);
+  if (searchParams.final === "hero") project.finalPhotoId = project.photos[0]?.id;
+  return <TemplateView project={project} templateId={id as TemplateId} device="auto" />;
 }

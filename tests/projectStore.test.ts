@@ -35,3 +35,27 @@ describe('legacy memory edits',()=>{
     expect(personalAnswers(changed.memories).map(m=>m.key)).toEqual(['favorite-song']);
   });
 });
+
+describe("Final Photo", () => {
+  it("can reuse the hero without changing its role or collection membership", () => {
+    const photos = [photo("hero", 0), photo("other", 1)];
+    const project = { ...createEmptyProject(), photos };
+    const next = projectReducer(project, { type: "setFinalPhoto", photoId: "hero" });
+    expect(next.finalPhotoId).toBe("hero");
+    expect(next.photos).toEqual(photos);
+    const removed = projectReducer(next, { type: "setFinalPhoto" });
+    expect(removed.finalPhotoId).toBeUndefined();
+    expect(removed.photos).toEqual(photos);
+  });
+
+  it("replaces the dedicated upload without affecting the collection", () => {
+    const hero = photo("hero", 0);
+    const project = { ...createEmptyProject(), photos: [hero] };
+    const uploaded = projectReducer(project, { type: "setFinalPhoto", upload: { ...photo("ending", 1), endingOnly: true } });
+    expect(uploaded.finalPhotoId).toBe("ending");
+    expect(uploaded.photos.map(item => item.id)).toEqual(["hero", "ending"]);
+    const replaced = projectReducer(uploaded, { type: "setFinalPhoto", photoId: "hero" });
+    expect(replaced.photos).toEqual([hero]);
+    expect(projectReducer(replaced, { type: "removePhoto", photoId: "hero" }).finalPhotoId).toBeUndefined();
+  });
+});

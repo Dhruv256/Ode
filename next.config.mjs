@@ -2,7 +2,7 @@ import { PHASE_DEVELOPMENT_SERVER } from "next/constants.js";
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  images: { remotePatterns: [{ protocol: "https", hostname: "**.supabase.co", pathname: "/storage/v1/object/public/**" }] },
+  images: { minimumCacheTTL: 86400, formats: ["image/webp"], remotePatterns: [{ protocol: "https", hostname: "**.supabase.co", pathname: "/storage/v1/object/public/**" }] },
   async headers() {
     return [{source:'/:path*',headers:[
       {key:'X-Content-Type-Options',value:'nosniff'},

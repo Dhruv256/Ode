@@ -104,11 +104,11 @@ export interface PhotoStoryAllocation {
  * A deterministic narrative allocation that uses every upload without placing
  * the whole collection on screen. Dense montage is reserved for 21+ photos.
  */
-export function allocatePhotoStory(photos: PhotoAsset[], heroId?: string): PhotoStoryAllocation {
-  if (!photos.length) return { pair: [], carousel: [], secondaryPair: [], montage: [] };
-  const hero = photos.find((photo) => photo.id === heroId || photo.isHero) ?? photos[0];
+export function allocatePhotoStory(photos: PhotoAsset[], heroId?: string, finalPhoto?: PhotoAsset): PhotoStoryAllocation {
+  if (!photos.length) return { finale: finalPhoto, pair: [], carousel: [], secondaryPair: [], montage: [] };
+  const hero = photos.find((photo) => photo.id === heroId) ?? photos.find(photo => photo.isHero) ?? photos[0];
   const ordered = photos.filter((photo) => photo.id !== hero.id);
-  const finale = ordered.length > 0 ? ordered.pop() : hero;
+  const finale = finalPhoto ?? (ordered.length > 0 ? ordered.pop() : hero);
   const feature = ordered.shift();
   const pair = ordered.splice(0, 2);
   const reveal = ordered.shift();

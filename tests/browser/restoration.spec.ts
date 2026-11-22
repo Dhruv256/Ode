@@ -180,3 +180,85 @@ test('unauthenticated creator APIs fail closed in QA, without touching storage',
   const upload=await request.post('/api/media/sign',{data:{projectId:'synthetic',fileName:'test.svg',contentType:'image/svg+xml',kind:'image',sizeBytes:100}});
   expect(upload.status()).toBe(401);
 });
+
+for (const width of [320, 375, 390, 430]) {
+  test(`Poster City at ${width}px keeps the final photo prominent and the rail navigable`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 });
+    for (const count of [1, 5, 10, 23]) {
+      await page.goto(`/qa/templates?template=poster-city&photos=${count}&final=hero`);
+      const finalPhoto = page.locator("footer [data-photo-id='qa-photo-0']");
+      await expect(finalPhoto).toHaveAttribute("data-render-fit", "contain");
+      const box = await finalPhoto.boundingBox();
+      expect(box?.width).toBeGreaterThanOrEqual(width * .85);
+      expect((box?.width ?? 0) / (box?.height ?? 1)).toBeCloseTo(1080 / 1920, 2);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+      if (count === 23) {
+        const rail = page.getByRole("region", { name: /poster city street posters/i });
+        await rail.getByRole("button", { name: "Next item" }).click();
+        const image = rail.locator(".tp-carousel-track > div:not([aria-hidden=true]) img").first();
+        await expect.poll(() => image.evaluate((node: HTMLImageElement) => node.complete && node.naturalWidth > 0)).toBe(true);
+      }
+    }
+  });
+}
+
+test("creator can compare styles and save a Final Photo independently of the hero", async ({ page }) => {
+  const project = templateFixture("poster-city", 5, "legacy");
+  await page.setViewportSize({ width: 320, height: 844 });
+  await page.addInitScript(draft => {
+    if (!localStorage.getItem("birthday-world/project/v1")) {
+      localStorage.setItem("birthday-world/project/v1", JSON.stringify(draft));
+    }
+  }, project);
+  await page.goto("/create?preview=1");
+  const template = page.locator(".birthday-template");
+  await expect(template).toHaveAttribute("data-template", "poster-city");
+
+  await page.getByRole("button", { name: /photos the memories/i }).click();
+  await page.getByRole("button", { name: "Choose photo", exact: true }).click();
+  await page.getByRole("combobox", { name: "Choose an uploaded Final Photo" }).selectOption("qa-photo-0");
+  await expect(page.getByRole("group", { name: "Final Photo" }).getByText("memory-1.jpg")).toBeVisible();
+  await page.getByRole("button", { name: /continue.*words/i }).click();
+  await page.getByRole("button", { name: /continue.*preview/i }).click();
+  await expect(template.locator("footer [data-photo-id='qa-photo-0']")).toBeAttached();
+
+  await page.getByRole("button", { name: "Explore Styles" }).click();
+  await page.getByRole("button", { name: "Archive", exact: true }).click();
+  await expect(template).toHaveAttribute("data-template", "archive");
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(template).toHaveAttribute("data-template", "poster-city");
+
+  await page.getByRole("button", { name: "Explore Styles" }).click();
+  await page.getByRole("button", { name: "Archive", exact: true }).click();
+  await page.getByRole("button", { name: "Use this style" }).click();
+  await expect.poll(() => page.evaluate(id => {
+    const drafts = JSON.parse(localStorage.getItem("ode/websites/v3/device") || "{}");
+    return drafts[id]?.templateId;
+  }, project.id)).toBe("archive");
+  await page.reload();
+  await expect(template).toHaveAttribute("data-template", "archive");
+  await expect(template.locator("footer [data-photo-id='qa-photo-0']")).toBeAttached();
+  await page.getByRole("button", { name: "Preview as recipient" }).click();
+  await expect(template).toHaveCount(1);
+  await expect(template.getByRole("button", { name: "Explore Styles" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Exit preview" }).click();
+  await page.getByRole("button", { name: /photos the memories/i }).click();
+  const finalPhoto = page.getByRole("group", { name: "Final Photo" });
+  await finalPhoto.getByRole("button", { name: "Change", exact: true }).click();
+  await finalPhoto.locator('input[type="file"]').setInputFiles({
+    name: "dedicated-ending.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aIZ0AAAAASUVORK5CYII=", "base64"),
+  });
+  await expect(finalPhoto.getByText("dedicated-ending.png")).toBeVisible();
+  await expect.poll(() => page.evaluate(id => {
+    const draft = JSON.parse(localStorage.getItem("ode/websites/v3/device") || "{}")[id];
+    return draft?.photos.find((photo: { id: string }) => photo.id === draft.finalPhotoId)?.fileName;
+  }, project.id)).toBe("dedicated-ending.png");
+  await page.reload();
+  await expect(template.locator("footer img[alt='A memory']")).toBeAttached();
+  await page.getByRole("button", { name: /photos the memories/i }).click();
+  await finalPhoto.getByRole("button", { name: "Remove", exact: true }).click();
+  await expect(finalPhoto.getByText("Use the style’s default ending")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Clear all 5" })).toBeVisible();
+});
